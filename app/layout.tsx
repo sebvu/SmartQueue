@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dark">
       <body data-new-gr-c-s-check-loaded="8.937.0" data-gr-ext-installed="">
         <NotificationProvider>
           {children}
