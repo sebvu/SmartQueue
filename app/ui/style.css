@@ -2,8 +2,27 @@ html {
   height: 100%;
 }
 
+/* colors defined are discretionary, but these are sensible default */
+
 body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
   min-height: 100%;
+  padding: 4rem 2rem;
 
   background-color: var(--background-pane);
+  color: var(--text-color);
+
+  font-weight: 200;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--subtext0-color);
 }

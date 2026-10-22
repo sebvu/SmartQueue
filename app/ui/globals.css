@@ -151,69 +151,69 @@
 
 /* Matches any element containing a class that starts with --context- */
 [class*="--context-"] {
-  --size: var(--size-rg); /* sensible fallback default */
+  font-size: var(--size-rg); /* sensible fallback default */
 }
 
 /* Dynamic contexts */
 [class*="--context-xxxs"] {
-  --size: var(--size-xxxs);
+  font-size: var(--size-xxxs);
 }
 [class*="--context-xxs"] {
-  --size: var(--size-xxs);
+  font-size: var(--size-xxs);
 }
 [class*="--context-xs"] {
-  --size: var(--size-xs);
+  font-size: var(--size-xs);
 }
 [class*="--context-sm"] {
-  --size: var(--size-sm);
+  font-size: var(--size-sm);
 }
 [class*="--context-rg"] {
-  --size: var(--size-rg);
+  font-size: var(--size-rg);
 }
 [class*="--context-md"] {
-  --size: var(--size-md);
+  font-size: var(--size-md);
 }
 [class*="--context-lg"] {
-  --size: var(--size-lg);
+  font-size: var(--size-lg);
 }
 [class*="--context-xl"] {
-  --size: var(--size-xl);
+  font-size: var(--size-xl);
 }
 [class*="--context-xxl"] {
-  --size: var(--size-xxl);
+  font-size: var(--size-xxl);
 }
 [class*="--context-xxxl"] {
-  --size: var(--size-xxxl);
+  font-size: var(--size-xxxl);
 }
 
 /* Static contexts */
 [class*="--context-xxxs-static"] {
-  --size: var(--size-xxxs-static);
+  font-size: var(--size-xxxs-static);
 }
 [class*="--context-xxs-static"] {
-  --size: var(--size-xxs-static);
+  font-size: var(--size-xxs-static);
 }
 [class*="--context-xs-static"] {
-  --size: var(--size-xs-static);
+  font-size: var(--size-xs-static);
 }
 [class*="--context-sm-static"] {
-  --size: var(--size-sm-static);
+  font-size: var(--size-sm-static);
 }
 [class*="--context-rg-static"] {
-  --size: var(--size-rg-static);
+  font-size: var(--size-rg-static);
 }
 [class*="--context-md-static"] {
-  --size: var(--size-md-static);
+  font-size: var(--size-md-static);
 }
 [class*="--context-lg-static"] {
-  --size: var(--size-lg-static);
+  font-size: var(--size-lg-static);
 }
 [class*="--context-xl-static"] {
-  --size: var(--size-xl-static);
+  font-size: var(--size-xl-static);
 }
 [class*="--context-xxl-static"] {
-  --size: var(--size-xxl-static);
+  font-size: var(--size-xxl-static);
 }
 [class*="--context-xxxl-static"] {
-  --size: var(--size-xxxl-static);
+  font-size: var(--size-xxxl-static);
 }
