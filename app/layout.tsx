@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-// import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./ui/reset.css";
 import "./ui/globals.css";
 import "./ui/style.css";
@@ -16,6 +16,10 @@ import Toast from "./ui/Toast";
 //   subsets: ["latin"],
 // });
 
+const inter = Inter({
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "SmartQueue",
   description: "COSC 4353 Group 1 Project",
@@ -23,7 +27,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" className={`${inter.className}`} data-theme="dark">
       <body data-new-gr-c-s-check-loaded="8.937.0" data-gr-ext-installed="">
         <NotificationProvider>
           {children}
