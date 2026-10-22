@@ -5,12 +5,17 @@ html {
 /* colors defined are discretionary, but these are sensible default */
 
 body {
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 
-  padding: 5rem 3rem;
+  min-height: 100%;
+  padding: 4rem 2rem;
 
   background-color: var(--background-pane);
   color: var(--text-color);
+
+  font-weight: 200;
 }
 
 h1,
