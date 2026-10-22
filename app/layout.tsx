@@ -6,16 +6,6 @@ import "./ui/style.css";
 import { NotificationProvider } from "./lib/NotificationContext";
 import Toast from "./ui/Toast";
 
-// const geistSans = Geist({
-//   variable: "--font-geist-sans",
-//   subsets: ["latin"],
-// });
-//
-// const geistMono = Geist_Mono({
-//   variable: "--font-geist-mono",
-//   subsets: ["latin"],
-// });
-
 const inter = Inter({
   subsets: ["latin"],
 });
@@ -35,8 +25,5 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </NotificationProvider>
       </body>
     </html>
-    // <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-    //   <body>{children}</body>
-    // </html>
   );
 }
