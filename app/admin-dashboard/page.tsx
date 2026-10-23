@@ -1,7 +1,7 @@
 "use client";
 
 import styles from "@/app/ui/admin-dashboard/admin-dashboard.module.css";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 class User {
   id: number;
@@ -48,7 +48,23 @@ class Queue {
   }
 }
 
-
+interface queueTest {
+    queue_id: number;
+    org_id: number;
+    name: string;
+    description: string;
+    expected_duration_minutes: number;
+    priority_level: string;
+    is_active: boolean;
+    max_capacity: number;
+    is_gated: boolean;
+    waitlist_enabled: boolean;
+    geofence_enabled: boolean;
+    target_latitude: number | null;
+    target_longitude: number | null;
+    allowed_radius_meters: number;
+    created_at: string;
+}
 
 export default function Page() {
   const [queues, setQueues] = useState<Queue[]>([]);
@@ -57,9 +73,32 @@ export default function Page() {
   const [creatingQueue, setCreatingQueue] = useState(false);
   const [queueName, setQueueName] = useState("");
   const [queueDescription, setQueueDescription] = useState("");
+  const [testQueues, setTestQueues] = useState<queueTest[]>([]);
   const selectedQueue = queues.find((queue) => queue.id === selectedQueueId);
 
   const currQueueId = useRef(1);
+
+  useEffect(() => {
+    // try {
+      const fetchQueues = async () => {
+      const queueRes = await (fetch("../api/getQueues"));
+      
+      // if (!queueRes.ok) {
+      //   throw new Error("Failed to fetch queues");
+      // }
+
+      const data: queueTest[] = await queueRes.json();
+      setTestQueues(data);
+      console.log(data);
+    // } catch (error) {
+    //   console.error("LOLLLL", error);
+    // } finally {
+    //   console.log("bozo");
+    // }
+    }
+  // }
+  fetchQueues();
+}, []);
 
   function createQueue(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
