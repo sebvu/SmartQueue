@@ -1,0 +1,21 @@
+{
+    "queues": [
+        {
+            "queue_id": 1,
+            "org_id": 1,
+            "name": "hi",
+            "description": "scientists reveal the  Hi",
+            "expected_duration_minutes": 23,
+            "priority_level": "low",
+            "is_active": true,
+            "max_capacity": 50,
+            "is_gated": false,
+            "waitlist_enabled": true,
+            "geofence_enabled": false,
+            "target_latitude": null,
+            "target_longitude": null,
+            "allowed_radius_meters": 23.5,
+            "created_at": "2024-08-13 12:15:23"
+        }
+    ]
+}
