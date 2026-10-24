@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
-import queueData from '../mockData/queues.json'
+import { getStore } from '@/app/lib/server/store';
 
 export async function GET(req: Request) {
-    const queues = queueData.queues;
+    const store = getStore();
+    const queues = store.queues;
+    if (!queues) {
+        return NextResponse.json( {error: "queues not found"}, {status: 400})
+    }
 
     return NextResponse.json( queues, { status: 200 });
 }
