@@ -32,10 +32,13 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
     try {
-        const body = await req.json();
+        const { searchParams } = new URL(req.url);
 
-        const email = body.email;
-        const password = body.password;
+        const email = searchParams.get("email");
+        const password = searchParams.get("password");
+        if (!email || !password) {
+            return NextResponse.json( {error: "Email and password required"}, {status: 400})
+        }
 
         const store = getStore();
         const userExist = store.users.find((user) => user.email === email && user.passwordHash === password);
