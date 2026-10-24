@@ -1,56 +1,74 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./registration.module.css";
-import { validateEmail } from "./authValidation";
+import { PASSWORD_MAX, validateEmail } from "./authValidation";
+import { AuthApiError, mapFieldErrors, postJson } from "./authApi";
 
 interface LoginProps {
   onToggleMode: () => void;
 }
 
-// TODO: replace with the real login API call.
-// It should POST the credentials and resolve with the session ID.
-async function loginUser(email: string, password: string): Promise<string> {
-  console.log("loginUser called with", { email, password });
-  throw new Error("Login API is not connected yet.");
-}
+type Field = "email" | "password";
+const FIELDS = ["email", "password"] as const;
 
 export default function Login({ onToggleMode }: LoginProps) {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [touched, setTouched] = useState({ email: false, password: false });
+  const [touched, setTouched] = useState<Record<Field, boolean>>({
+    email: false,
+    password: false,
+  });
+  const [serverFieldErrors, setServerFieldErrors] = useState<
+    Partial<Record<Field, string>>
+  >({});
   const [serverError, setServerError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const errors = {
+  const errors: Record<Field, string> = {
     email: validateEmail(email),
     password: password.length === 0 ? "Please enter a password." : "",
   };
 
-  const showError = (field: "email" | "password") =>
-    touched[field] && errors[field];
+  // Server-reported errors win; they clear as soon as the field is edited.
+  const fieldError = (field: Field) =>
+    serverFieldErrors[field] || (touched[field] ? errors[field] : "");
 
-  const inputClass = (field: "email" | "password") => {
-    if (!touched[field]) return styles.input;
-    return `${styles.input} ${errors[field] ? styles.inputError : styles.inputValid}`;
+  const inputClass = (field: Field) => {
+    if (fieldError(field)) return `${styles.input} ${styles.inputError}`;
+    return touched[field]
+      ? `${styles.input} ${styles.inputValid}`
+      : styles.input;
+  };
+
+  const markEdited = (field: Field) => {
+    setTouched((t) => ({ ...t, [field]: true }));
+    setServerFieldErrors((s) => ({ ...s, [field]: undefined }));
+    setServerError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ email: true, password: true });
     setServerError("");
+    setServerFieldErrors({});
 
     if (errors.email || errors.password) return;
 
     setSubmitting(true);
     try {
-      const sessionID = await loginUser(email, password);
-      localStorage.setItem("sessionID", sessionID);
+      // The server sets the session cookie on success.
+      await postJson("/api/auth/login", { email: email.trim(), password });
       router.push("/home");
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Login failed.");
-    } finally {
+      if (err instanceof AuthApiError) {
+        const { fieldErrors, hasUnmapped } = mapFieldErrors(err.fields, FIELDS);
+        setServerFieldErrors(fieldErrors);
+        if (hasUnmapped) setServerError(err.message);
+      } else {
+        setServerError("Login failed. Please try again.");
+      }
       setSubmitting(false);
     }
   };
@@ -74,14 +92,14 @@ export default function Login({ onToggleMode }: LoginProps) {
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
-              setTouched((t) => ({ ...t, email: true }));
+              markEdited("email");
             }}
             placeholder="you@example.com"
             required
           />
-          {showError("email") && (
+          {fieldError("email") && (
             <span className={styles.errorText} aria-live="polite">
-              {errors.email}
+              {fieldError("email")}
             </span>
           )}
         </div>
@@ -100,14 +118,15 @@ export default function Login({ onToggleMode }: LoginProps) {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
-              setTouched((t) => ({ ...t, password: true }));
+              markEdited("password");
             }}
             placeholder="••••••••"
+            maxLength={PASSWORD_MAX}
             required
           />
-          {showError("password") && (
+          {fieldError("password") && (
             <span className={styles.errorText} aria-live="polite">
-              {errors.password}
+              {fieldError("password")}
             </span>
           )}
         </div>

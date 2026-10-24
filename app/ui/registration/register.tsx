@@ -1,29 +1,28 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./registration.module.css";
 import {
+  PASSWORD_MAX,
+  PASSWORD_MIN,
+  USERNAME_MAX,
   validateConfirmPassword,
   validateEmail,
   validatePassword,
   validateUsername,
 } from "./authValidation";
+import { AuthApiError, mapFieldErrors, postJson } from "./authApi";
 
 interface RegisterProps {
   onToggleMode: () => void;
 }
 
 type Field = "username" | "email" | "password" | "confirm";
-
-// TODO: replace with the real register API call (POST).
-async function registerUser(data: {
-  username: string;
-  email: string;
-  password: string;
-}): Promise<void> {
-  console.log("registerUser called with", data);
-  throw new Error("Register API is not connected yet.");
-}
+type ServerField = Exclude<Field, "confirm">;
+const SERVER_FIELDS = ["username", "email", "password"] as const;
 
 export default function Register({ onToggleMode }: RegisterProps) {
+  const router = useRouter();
+
   const [values, setValues] = useState<Record<Field, string>>({
     username: "",
     email: "",
@@ -36,6 +35,9 @@ export default function Register({ onToggleMode }: RegisterProps) {
     password: false,
     confirm: false,
   });
+  const [serverFieldErrors, setServerFieldErrors] = useState<
+    Partial<Record<ServerField, string>>
+  >({});
   const [serverError, setServerError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,25 +56,38 @@ export default function Register({ onToggleMode }: RegisterProps) {
       : validateConfirmPassword(values.confirm, values.password),
   };
 
+  // Server-reported errors win; they clear as soon as the field is edited.
+  const fieldError = (field: Field): string => {
+    if (field === "confirm") {
+      return touched.confirm && !confirmDisabled ? errors.confirm : "";
+    }
+    return serverFieldErrors[field] || (touched[field] ? errors[field] : "");
+  };
+
+  const inputClass = (field: Field) => {
+    if (fieldError(field)) return `${styles.input} ${styles.inputError}`;
+    const showValid =
+      field === "confirm"
+        ? touched.confirm && !confirmDisabled
+        : touched[field];
+    return showValid ? `${styles.input} ${styles.inputValid}` : styles.input;
+  };
+
   const handleChange =
     (field: Field) => (e: React.ChangeEvent<HTMLInputElement>) => {
       setValues((v) => ({ ...v, [field]: e.target.value }));
       setTouched((t) => ({ ...t, [field]: true }));
+      if (field !== "confirm") {
+        setServerFieldErrors((s) => ({ ...s, [field]: undefined }));
+      }
+      setServerError("");
     };
-
-  const showError = (field: Field) => touched[field] && errors[field];
-
-  const inputClass = (field: Field) => {
-    if (!touched[field] || (field === "confirm" && confirmDisabled)) {
-      return styles.input;
-    }
-    return `${styles.input} ${errors[field] ? styles.inputError : styles.inputValid}`;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ username: true, email: true, password: true, confirm: true });
     setServerError("");
+    setServerFieldErrors({});
 
     // Confirm is disabled while the password is invalid, so it must be
     // filled in (and matching) before we accept the form.
@@ -86,15 +101,24 @@ export default function Register({ onToggleMode }: RegisterProps) {
 
     setSubmitting(true);
     try {
-      await registerUser({
+      // On success the server also signs the person in (session cookie).
+      await postJson("/api/auth/register", {
         username: values.username.trim(),
-        email: values.email,
+        email: values.email.trim(),
         password: values.password,
       });
-      onToggleMode(); // registered: send them to the login view
+      router.push("/home");
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Sign up failed.");
-    } finally {
+      if (err instanceof AuthApiError) {
+        const { fieldErrors, hasUnmapped } = mapFieldErrors(
+          err.fields,
+          SERVER_FIELDS,
+        );
+        setServerFieldErrors(fieldErrors);
+        if (hasUnmapped) setServerError(err.message);
+      } else {
+        setServerError("Sign up failed. Please try again.");
+      }
       setSubmitting(false);
     }
   };
@@ -118,11 +142,12 @@ export default function Register({ onToggleMode }: RegisterProps) {
             value={values.username}
             onChange={handleChange("username")}
             placeholder="yourname"
+            maxLength={USERNAME_MAX}
             required
           />
-          {showError("username") && (
+          {fieldError("username") && (
             <span className={styles.errorText} aria-live="polite">
-              {errors.username}
+              {fieldError("username")}
             </span>
           )}
         </div>
@@ -143,9 +168,9 @@ export default function Register({ onToggleMode }: RegisterProps) {
             placeholder="you@example.com"
             required
           />
-          {showError("email") && (
+          {fieldError("email") && (
             <span className={styles.errorText} aria-live="polite">
-              {errors.email}
+              {fieldError("email")}
             </span>
           )}
         </div>
@@ -164,13 +189,13 @@ export default function Register({ onToggleMode }: RegisterProps) {
             value={values.password}
             onChange={handleChange("password")}
             placeholder="••••••••"
-            minLength={8}
-            maxLength={20}
+            minLength={PASSWORD_MIN}
+            maxLength={PASSWORD_MAX}
             required
           />
-          {showError("password") && (
+          {fieldError("password") && (
             <span className={styles.errorText} aria-live="polite">
-              {errors.password}
+              {fieldError("password")}
             </span>
           )}
         </div>
@@ -192,9 +217,9 @@ export default function Register({ onToggleMode }: RegisterProps) {
             disabled={confirmDisabled}
             required
           />
-          {!confirmDisabled && showError("confirm") && (
+          {fieldError("confirm") && (
             <span className={styles.errorText} aria-live="polite">
-              {errors.confirm}
+              {fieldError("confirm")}
             </span>
           )}
         </div>
