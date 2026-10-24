@@ -109,3 +109,25 @@ Put `yourModule.test.ts` beside the module. Call `resetStore()` in `beforeEach`.
 ## 8. Shared building blocks
 
 `types.ts`, `mockData.ts`, `store.ts` (`getStore`, `resetStore`, `generateId`), `http.ts`, `validation.ts`, `auth.ts`, `access.ts`, `password.ts`, `queueLogic.ts` (`getWaitingOrder`, `getPosition`, `isAlmostReady`, `estimateWaitMinutes`, `countActiveEntries`), `config.ts`.
+
+## 9. /api/me endpoints (built)
+
+All need login (401 otherwise). Files: `notificationService.ts`, `myEntriesService.ts`, `app/api/me/*`, tests in `myModules.test.ts`.
+
+| Method and path | Returns in `data` |
+|---|---|
+| GET `/api/me/entries` | array of `{ entry, queue, position, almostReady, estimatedWaitMinutes }`. `position` is null when the person is SERVING. |
+| GET `/api/me/history` | array of `{ entry, queue, outcome }`, outcome is `served`, `left`, or `removed`, latest first |
+| GET `/api/me/notifications` | array of notifications, newest first |
+| PATCH `/api/me/notifications/:id` | body `{ "isRead": true }`, returns the updated notification. 404 if it is not yours. |
+| POST `/api/me/notifications/read-all` | `{ updated: <count> }` |
+
+For other modules: call `addNotification(userId, entryId, type, message)` from `notificationService.ts` when something happens to a user (joined, almost ready, served, removed).
+
+## 10. Temporary login (so /api/me can be tried in the browser)
+
+`POST /api/auth/login` with `{ "email": "sam@example.com", "password": "password123" }` sets the session cookie. `POST /api/auth/logout` clears it. `GET /api/auth/me` returns the current user. These are in `tempAuthService.ts` and `app/api/auth/*`. Jester's real auth can replace them (same paths and same response shape).
+
+To try it in the browser, open the app, open DevTools console, and run:
+`fetch("/api/auth/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:"sam@example.com",password:"password123"})}).then(r=>r.json()).then(console.log)`
+Then visit `/api/me/entries`, `/api/me/history`, and `/api/me/notifications`.
