@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it } from "vitest";
 import { GET as healthGet } from "@/app/api/health/route";
 import { SESSION_COOKIE } from "./config";
