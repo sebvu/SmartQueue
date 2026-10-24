@@ -41,7 +41,7 @@ export async function GET(req: Request) {
             return NextResponse.json( { exists: false, error: "Email or password incorrect" }, { status: 401 });
         }
 
-        return NextResponse.json( { exists: true, userId: userExist.userId }, { status: 200 })
+        return NextResponse.json( { userData: userExist, exists: true, userId: userExist.userId }, { status: 200 })
     } catch {
         return NextResponse.json( { error: "invalid entry data" }, { status: 400 })
     }
