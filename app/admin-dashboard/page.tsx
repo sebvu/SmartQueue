@@ -100,7 +100,7 @@ export default function Page() {
   fetchQueues();
 }, []);
 
-  function createQueue(e: React.FormEvent<HTMLFormElement>) {
+  async function createQueue(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     const newQueue = new Queue(
@@ -109,6 +109,20 @@ export default function Page() {
       queueDescription,
       Number(expectedDuration),
     );
+
+    const res = await fetch("../api/addQueue", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        queueId: currQueueId,
+        orgId: "o0",
+        name: queueName,
+        description: queueDescription,
+        expectedDuration: Number(expectedDuration),
+        priorityLevel: "LOW",
+        maxCapacity: 50
+      })
+    });
 
     currQueueId.current += 1;
 
