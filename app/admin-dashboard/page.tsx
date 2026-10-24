@@ -33,9 +33,20 @@ class QueueOld {
     this.expectedDuration = expectedDuration;
   }
 
-  addUser(user: User) {
+  async addUser(user: User) {
     this.users.push(user);
     this.currQueueLength = this.currQueueLength + 1;
+
+    const res = await fetch("api/userQueue", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        queueId: "q67" + this.id,
+        userId: "u67",
+        roleIds: []
+      })
+    });
+
   }
 
   removeUser(user: User) {
@@ -43,9 +54,18 @@ class QueueOld {
     this.currQueueLength = this.currQueueLength - 1;
   }
 
-  serviceNextUser() {
-    this.users.pop();
-    this.currQueueLength = this.users.length;
+  async serviceNextUser() {
+    // this.users.pop();
+    // this.currQueueLength = this.users.length;
+
+    const res = await fetch("api/serveUser", {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        userId: "u67",
+        queueId: "q671"
+      })
+    })
   }
 }
 
@@ -100,6 +120,7 @@ export default function Page() {
   // }
   fetchQueues();
 }, []);
+
 
   async function createQueue(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
