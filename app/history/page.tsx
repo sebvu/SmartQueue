@@ -1,5 +1,10 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { mockHistory } from "@/app/lib/mockData";
+import { apiGet } from "@/app/lib/api";
+import { toHistoryItem, type ApiHistoryItem } from "@/app/lib/apiMappers";
 import type { HistoryItem } from "@/app/lib/types";
 import UserHeader from "@/app/ui/UserHeader";
 import styles from "@/app/ui/history/history.module.css";
@@ -27,8 +32,21 @@ function formatDate(date: string): string {
 }
 
 export default function HistoryPage() {
+  // Start with the sample data, then replace it with the signed-in user's real history.
+  const [history, setHistory] = useState<HistoryItem[]>(mockHistory);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<ApiHistoryItem[]>("/api/me/history").then((data) => {
+      if (!cancelled && data) setHistory(data.map(toHistoryItem));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Newest first. ISO dates sort correctly as strings.
-  const items = [...mockHistory].sort((a, b) => b.date.localeCompare(a.date));
+  const items = [...history].sort((a, b) => b.date.localeCompare(a.date));
   const servedCount = items.filter((item) => item.outcome === "served").length;
 
   return (
@@ -48,7 +66,7 @@ export default function HistoryPage() {
           <section className={styles.empty}>
             <h2 className={styles.emptyTitle}>No history yet</h2>
             <p className={styles.emptyText}>
-              Once you've joined a queue, your past visits will show up here.
+              Once you&apos;ve joined a queue, your past visits will show up here.
             </p>
             <Link href="/user-dashboard" className={styles.emptyLink}>
               Go to dashboard
