@@ -4,6 +4,7 @@ import "./ui/reset.css";
 import "./ui/globals.css";
 import "./ui/style.css";
 import { NotificationProvider } from "./lib/NotificationContext";
+import { QueueProvider } from "./lib/QueueContext";
 import Toast from "./ui/Toast";
 
 const inter = Inter({
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${inter.className}`} data-theme="dark">
       <body data-new-gr-c-s-check-loaded="8.937.0" data-gr-ext-installed="">
         <NotificationProvider>
-          {children}
+          <QueueProvider>{children}</QueueProvider>
           <Toast />
         </NotificationProvider>
       </body>

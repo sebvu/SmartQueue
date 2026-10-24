@@ -1,27 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { mockServices } from "../lib/mockData";
 import { useQueue } from "../lib/QueueContext";
+import { apiGet } from "../lib/api";
+import { toService, type ApiQueueListItem } from "../lib/apiMappers";
+import type { Service } from "../lib/types";
 import styles from "../ui/join-queue/join-queue.module.css";
 
 export default function JoinQueuePage() {
   const router = useRouter();
   const [selectedServiceId, setSelectedServiceId] = useState("");
-  const { queueEntry, joinQueue, leaveQueue } = useQueue();
+  const { queueEntry, error, joinQueue, leaveQueue } = useQueue();
 
-  const selectedService = mockServices.find(
+  // Start with the sample services, then load the real queues from the API.
+  const [services, setServices] = useState<Service[]>(mockServices);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<ApiQueueListItem[]>("/api/queues").then((data) => {
+      if (!cancelled && data) setServices(data.map(toService));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedService = services.find(
     (service) => service.id === selectedServiceId
   );
 
-  function handleJoin() {
+  async function handleJoin() {
     if (!selectedService || !selectedService.isOpen) {
       return;
     }
 
-    joinQueue(selectedService);
-    router.push("/queue-status");
+    const joined = await joinQueue(selectedService);
+    if (joined) router.push("/queue-status");
   }
 
   return (
@@ -37,7 +53,7 @@ export default function JoinQueuePage() {
         >
           <option value="">Select a service</option>
 
-          {mockServices.map((service) => (
+          {services.map((service) => (
             <option
               key={service.id}
               value={service.id}
@@ -69,6 +85,8 @@ export default function JoinQueuePage() {
             </button>
           </div>
         )}
+
+        {error && <p role="alert">{error}</p>}
 
         {queueEntry && (
           <div>

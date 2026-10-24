@@ -5,7 +5,7 @@ import type { EntryStatus, Queue, QueueEntry } from "./types";
 // The signed-in user's own queue entries: where they are now, and what already ended.
 
 const HISTORY_STATUSES: EntryStatus[] = ["COMPLETED", "CANCELLED", "REMOVED"];
-const CURRENT_STATUSES: EntryStatus[] = [
+export const CURRENT_STATUSES: EntryStatus[] = [
   "PENDING_APPROVAL",
   "WAITLISTED",
   "WAITING",
@@ -34,21 +34,23 @@ function forUser(userId: string, statuses: EntryStatus[]): QueueEntry[] {
   return getStore().queueEntries.filter((e) => e.userId === userId && statuses.includes(e.status));
 }
 
+// One entry with its queue summary, position, and wait estimate.
+export function toMyEntry(entry: QueueEntry): MyEntry {
+  const queue = getStore().queues.find((q) => q.queueId === entry.queueId);
+  return {
+    entry,
+    queue: summarize(queue),
+    position: entry.status === "FIRST_IN_LINE" ? 1 : getPosition(entry),
+    almostReady: entry.status === "FIRST_IN_LINE" || isAlmostReady(entry),
+    estimatedWaitMinutes: queue ? estimateWaitMinutes(entry, queue) : null,
+  };
+}
+
 // Entries the user is still in, newest join first.
 export function getMyCurrentEntries(userId: string): MyEntry[] {
-  const queues = getStore().queues;
   return forUser(userId, CURRENT_STATUSES)
     .sort((a, b) => b.joinedAt.localeCompare(a.joinedAt))
-    .map((entry) => {
-      const queue = queues.find((q) => q.queueId === entry.queueId);
-      return {
-        entry,
-        queue: summarize(queue),
-        position: entry.status === "FIRST_IN_LINE" ? 1 : getPosition(entry),
-        almostReady: entry.status === "FIRST_IN_LINE" || isAlmostReady(entry),
-        estimatedWaitMinutes: queue ? estimateWaitMinutes(entry, queue) : null,
-      };
-    });
+    .map(toMyEntry);
 }
 
 export type HistoryItem = {
