@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
-import { mockUsers } from '../../lib/server/mockData.ts'
+import { getStore } from '@/app/lib/server/store.ts';
 import { User } from '../../lib/server/types.ts'
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
 
-        const user = mockUsers.find((user) => user.email === body.email);
+        const store = getStore();
+
+        const user = store.users.find((user) => user.email === body.email);
         if (user) {
             return NextResponse.json( { error: "User already exists" }, { status: 409 });
         }
@@ -20,7 +22,7 @@ export async function POST(req: Request) {
             createdAt: new Date().toISOString()
         };
 
-        mockUsers.push(newUser);
+        store.users.push(newUser);
 
         return NextResponse.json( newUser, { status: 201 });
     } catch {
@@ -35,7 +37,8 @@ export async function GET(req: Request) {
         const email = body.email;
         const password = body.password;
 
-        const userExist = mockUsers.find((user) => user.email === email && user.passwordHash === password);
+        const store = getStore();
+        const userExist = store.users.find((user) => user.email === email && user.passwordHash === password);
 
         if (!userExist) {
             return NextResponse.json( { exists: false, error: "Email or password incorrect" }, { status: 401 });
