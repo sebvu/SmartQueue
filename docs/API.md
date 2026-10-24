@@ -144,3 +144,22 @@ All need login. Files: `queueUserService.ts`, `app/api/queues/*`, tests in `queu
 | POST `/api/queues/:queueId/leave` | sets the entry to CANCELLED. 404 if not in it. 409 if being served. Creates a notification. |
 
 Admin actions (create, edit, open/close, serve next, remove) should go in new files such as `app/api/queues/[queueId]/serve-next/route.ts`. Put a POST for creating queues in `app/api/queues/route.ts` next to the GET.
+
+## 12. Register (and how the forms call the auth API)
+
+`POST /api/auth/register` with `{ "username", "email", "password" }`. Username 3 to 100 characters, valid email, password 8 to 128 characters. Returns 201 with the new user (no password) and sets the session cookie, so the person is signed in. Errors: 400 `VALIDATION_ERROR` (with `error.fields` naming each bad field), 409 `EMAIL_TAKEN` (with `error.fields.email`).
+
+`POST /api/auth/login` with `{ "email", "password" }` returns the user and sets the cookie, or 401 "Incorrect email or password."
+
+Example for a form (works for both, change the path and body):
+```ts
+const res = await fetch("/api/auth/register", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ username, email, password }),
+});
+const json = await res.json();
+if (res.ok) { /* json.data is the user; go to /user-dashboard */ }
+else { /* json.error.message, and json.error.fields.email / .username / .password for each input */ }
+```
+`/api/userAuth` stores plain-text passwords and does not keep the person signed in, so the forms should not use it.
