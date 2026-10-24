@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNotifications } from "@/app/lib/NotificationContext";
 import { mockQueueEntry, mockServices } from "@/app/lib/mockData";
+import { apiGet } from "@/app/lib/api";
+import { toCurrentEntry, type ApiMyEntry } from "@/app/lib/apiMappers";
 import { TYPE_LABELS, formatTime, formatWait } from "@/app/lib/format";
 import type { QueueEntry, QueueStatus } from "@/app/lib/types";
 import UserHeader from "@/app/ui/UserHeader";
@@ -36,15 +38,33 @@ const STATUS_CLASS: Record<QueueStatus, string> = {
   served: styles.served,
 };
 
-// Single place to swap in the shared queue state from Part 1 later,
-// e.g. return useQueue().currentEntry instead of the mock.
-function useCurrentEntry(): QueueEntry | null {
-  return mockQueueEntry;
+// The signed-in user's current queue, from the API. Falls back to the sample entry
+// if the request fails (for example, not logged in yet).
+type Current = { entry: QueueEntry | null; serviceName: string | null };
+
+function useCurrentEntry(): Current {
+  const [current, setCurrent] = useState<Current>({
+    entry: mockQueueEntry,
+    serviceName: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<ApiMyEntry[]>("/api/me/entries").then((data) => {
+      if (cancelled || !data) return;
+      setCurrent(data.length > 0 ? toCurrentEntry(data[0]) : { entry: null, serviceName: null });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return current;
 }
 
 export default function UserDashboardPage() {
   const { notifications, unreadCount } = useNotifications();
-  const entry = useCurrentEntry();
+  const { entry, serviceName } = useCurrentEntry();
 
   const currentService = entry
     ? mockServices.find((s) => s.id === entry.serviceId)
@@ -79,7 +99,7 @@ export default function UserDashboardPage() {
             <>
               <div className={styles.statusTop}>
                 <p className={styles.serviceName}>
-                  {currentService?.name ?? "Your queue"}
+                  {serviceName ?? currentService?.name ?? "Your queue"}
                 </p>
                 <span className={`${styles.badge} ${STATUS_CLASS[entry.status]}`}>
                   <span className={styles.dot} aria-hidden="true" />
@@ -109,7 +129,7 @@ export default function UserDashboardPage() {
             </>
           ) : (
             <div className={styles.emptyInline}>
-              <p className={styles.emptyTitle}>You're not in a queue</p>
+              <p className={styles.emptyTitle}>You&apos;re not in a queue</p>
               <p className={styles.emptyText}>
                 Pick a service below to join the line and track your spot.
               </p>
@@ -144,7 +164,7 @@ export default function UserDashboardPage() {
                         </p>
                       </div>
                       {isCurrent ? (
-                        <span className={styles.joined}>You're in this queue</span>
+                        <span className={styles.joined}>You&apos;re in this queue</span>
                       ) : (
                         <Link
                           href={`${JOIN_QUEUE_PATH}?service=${service.id}`}

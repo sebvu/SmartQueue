@@ -11,6 +11,8 @@ import {
 } from "react";
 import type { AppNotification } from "./types";
 import { mockNotifications } from "./mockData";
+import { apiGet, apiSend } from "./api";
+import { toNotification, type ApiNotification } from "./apiMappers";
 
 type NotificationType = AppNotification["type"];
 
@@ -32,6 +34,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] =
     useState<AppNotification[]>(mockNotifications);
   const [toast, setToast] = useState<AppNotification | null>(null);
+
+  // Load the signed-in user's notifications from the API. If that fails (for example,
+  // not logged in yet), keep the sample data so the screen still works.
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<ApiNotification[]>("/api/me/notifications").then((data) => {
+      if (!cancelled && data) setNotifications(data.map(toNotification));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Hide the toast automatically a few seconds after it appears.
   useEffect(() => {
@@ -57,12 +71,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 
   const markAsRead = useCallback((id: string) => {
+    void apiSend(`/api/me/notifications/${id}`, "PATCH", { isRead: true });
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
   }, []);
 
   const markAllAsRead = useCallback(() => {
+    void apiSend("/api/me/notifications/read-all", "POST");
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }, []);
 
