@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
         const newUser: User = {
             userId: `u${Date.now()}`,
-            name: `${body.firstName.trim()} ${body.lastName.trim()}`,
+            name: body.username,
             email: body.email.trim().toLowerCase(),
             authProvider: "GENERAL",
             passwordHash: body.password,
