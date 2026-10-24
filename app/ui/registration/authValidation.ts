@@ -5,17 +5,29 @@ const SPECIAL_CHARACTER_REGEX = /[#?!@$%^&*-]/;
 const DIGIT_REGEX = /[0-9]/;
 
 export const PASSWORD_MIN = 8;
-export const PASSWORD_MAX = 20;
+export const PASSWORD_MAX = 128; // server: LIMITS.passwordMax
+export const USERNAME_MIN = 3;
+export const USERNAME_MAX = 100; // server: LIMITS.nameMax
+export const EMAIL_MAX = 255; // server: LIMITS.emailMax
 
 export function validateEmail(value: string): string {
   if (value.length === 0) return "Please enter your email.";
+  if (value.length > EMAIL_MAX) {
+    return `Email must be at most ${EMAIL_MAX} characters.`;
+  }
   if (!EMAIL_REGEX.test(value)) return "Value needs to be an email address.";
   return "";
 }
 
 export function validateUsername(value: string): string {
-  if (value.trim().length === 0) return "Please enter a username.";
-  if (value.trim().length < 3) return "Username must be at least 3 characters.";
+  const text = value.trim();
+  if (text.length === 0) return "Please enter a username.";
+  if (text.length < USERNAME_MIN) {
+    return `Username must be at least ${USERNAME_MIN} characters.`;
+  }
+  if (text.length > USERNAME_MAX) {
+    return `Username must be at most ${USERNAME_MAX} characters.`;
+  }
   return "";
 }
 
