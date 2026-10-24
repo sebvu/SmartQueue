@@ -27,3 +27,22 @@ export async function POST(req: Request) {
         return NextResponse.json( { error: "Invalid details" }, { status: 400 });
     }
 }
+
+export async function GET(req: Request) {
+    try {
+        const body = await req.json();
+
+        const email = body.email;
+        const password = body.password;
+
+        const userExist = mockUsers.find((user) => user.email === email && user.passwordHash === password);
+
+        if (!userExist) {
+            return NextResponse.json( { exists: false, error: "Email or password incorrect" }, { status: 401 });
+        }
+
+        return NextResponse.json( { exists: true, userId: userExist.userId }, { status: 200 })
+    } catch {
+        return NextResponse.json( { error: "invalid entry data" }, { status: 400 })
+    }
+}
