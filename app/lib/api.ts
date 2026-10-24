@@ -32,3 +32,39 @@ export async function apiSend(
     return false;
   }
 }
+
+export type ApiResult<T> = {
+  ok: boolean;
+  status: number; // 0 means the request never reached the server
+  data: T | null;
+  message: string | null; // the server's error message, if there was one
+};
+
+// Like apiSend, but tells the screen what happened so it can show a message
+// (for example "This queue is full." or "Please log in to continue.").
+export async function apiRequest<T>(
+  path: string,
+  method: "GET" | "PATCH" | "POST",
+  body?: unknown
+): Promise<ApiResult<T>> {
+  try {
+    const res = await fetch(path, {
+      method,
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      data?: T;
+      error?: { message?: string };
+    };
+    return {
+      ok: res.ok,
+      status: res.status,
+      data: json.data ?? null,
+      message: json.error?.message ?? null,
+    };
+  } catch {
+    return { ok: false, status: 0, data: null, message: "Could not reach the server." };
+  }
+}
