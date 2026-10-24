@@ -2,6 +2,7 @@
 
 import styles from "@/app/ui/admin-dashboard/admin-dashboard.module.css";
 import { useEffect, useRef, useState } from "react";
+import type { Queue } from "../lib/server/types";
 
 class User {
   id: number;
@@ -12,7 +13,7 @@ class User {
   }
 }
 
-class Queue {
+class QueueOld {
   id: number;
   name: string;
   currQueueLength: number;
@@ -32,9 +33,20 @@ class Queue {
     this.expectedDuration = expectedDuration;
   }
 
-  addUser(user: User) {
+  async addUser(user: User) {
     this.users.push(user);
     this.currQueueLength = this.currQueueLength + 1;
+
+    const res = await fetch("api/userQueue", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        queueId: "q67" + this.id,
+        userId: "u67",
+        roleIds: []
+      })
+    });
+
   }
 
   removeUser(user: User) {
@@ -42,9 +54,18 @@ class Queue {
     this.currQueueLength = this.currQueueLength - 1;
   }
 
-  serviceNextUser() {
-    this.users.pop();
-    this.currQueueLength = this.users.length;
+  async serviceNextUser() {
+    // this.users.pop();
+    // this.currQueueLength = this.users.length;
+
+    const res = await fetch("api/serveUser", {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        userId: "u67",
+        queueId: "q671"
+      })
+    })
   }
 }
 
@@ -67,7 +88,7 @@ interface queueTest {
 }
 
 export default function Page() {
-  const [queues, setQueues] = useState<Queue[]>([]);
+  const [queues, setQueues] = useState<QueueOld[]>([]);
   const [selectedQueueId, setSelectedQueueId] = useState<number | null>(null);
   const [expectedDuration, setExpectedDuration] = useState("");
   const [creatingQueue, setCreatingQueue] = useState(false);
@@ -100,15 +121,30 @@ export default function Page() {
   fetchQueues();
 }, []);
 
-  function createQueue(e: React.FormEvent<HTMLFormElement>) {
+
+  async function createQueue(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const newQueue = new Queue(
+    const newQueue = new QueueOld(
       currQueueId.current,
       queueName,
       queueDescription,
       Number(expectedDuration),
     );
+
+    const res = await fetch("../api/addQueue", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        queueId: `q67${currQueueId.current}`,
+        orgId: "o0",
+        name: queueName,
+        description: queueDescription,
+        expectedDuration: Number(expectedDuration),
+        priorityLevel: "LOW",
+        maxCapacity: 50
+      })
+    });
 
     currQueueId.current += 1;
 
@@ -127,8 +163,16 @@ export default function Page() {
     setQueues((currentQueues) => currentQueues.filter((queue) => queue.id !== id))
   }
 
-  function updateQueueStatus(queue: Queue) {
+  async function updateQueueStatus(queue: QueueOld) {
     queue.open = (queue.open ? false : true);
+    const res = await fetch("api/editQueue", {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        queueId: `q67${queue.id}`,
+        isOpen: queue.open,
+      })
+    })
   }
 
 
