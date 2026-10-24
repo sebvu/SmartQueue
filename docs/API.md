@@ -131,3 +131,16 @@ For other modules: call `addNotification(userId, entryId, type, message)` from `
 To try it in the browser, open the app, open DevTools console, and run:
 `fetch("/api/auth/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:"sam@example.com",password:"password123"})}).then(r=>r.json()).then(console.log)`
 Then visit `/api/me/entries`, `/api/me/history`, and `/api/me/notifications`.
+
+## 11. Queues for users (list, details, join, leave)
+
+All need login. Files: `queueUserService.ts`, `app/api/queues/*`, tests in `queueUser.test.ts`. These replace the older `/api/userQueue` route, which wrote to `mockData.ts` directly and trusted a userId from the body.
+
+| Method and path | What it does |
+|---|---|
+| GET `/api/queues` | active queues with `queueLength`, `estimatedWaitMinutes` (for someone joining now), `isFull`. Closed queues are listed with `isOpen: false`. Deactivated queues are hidden. |
+| GET `/api/queues/:queueId` | one queue plus `myEntry` (the caller's entry with position, or null) |
+| POST `/api/queues/:queueId/join` | 201 with the new entry. 409 `QUEUE_CLOSED`, `ALREADY_IN_QUEUE`, or `QUEUE_FULL`. 404 if missing or deactivated. New entries have no roles (only staff assign roles). Creates two notifications. |
+| POST `/api/queues/:queueId/leave` | sets the entry to CANCELLED. 404 if not in it. 409 if being served. Creates a notification. |
+
+Admin actions (create, edit, open/close, serve next, remove) should go in new files such as `app/api/queues/[queueId]/serve-next/route.ts`. Put a POST for creating queues in `app/api/queues/route.ts` next to the GET.

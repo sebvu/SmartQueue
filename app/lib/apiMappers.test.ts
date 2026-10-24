@@ -25,3 +25,16 @@ describe("apiMappers", () => {
     expect(serving.entry).toMatchObject({ status: "almost_ready", position: 1, estimatedWaitMinutes: 0 });
   });
 });
+
+import { toService } from "./apiMappers";
+
+describe("toService", () => {
+  const q = { queueId: "q1", name: "Advising", description: "d", expectedDurationMinutes: 15, priorityLevel: "HIGH" as const, isOpen: true, isFull: false, queueLength: 5, estimatedWaitMinutes: 75 };
+  it("maps a queue to the join screen's service", () => {
+    expect(toService(q)).toEqual({ id: "q1", name: "Advising", description: "d", expectedDurationMinutes: 15, priority: "high", estimatedWaitMinutes: 75, queueLength: 5, isOpen: true });
+  });
+  it("shows a full or closed queue as closed", () => {
+    expect(toService({ ...q, isFull: true }).isOpen).toBe(false);
+    expect(toService({ ...q, isOpen: false }).isOpen).toBe(false);
+  });
+});

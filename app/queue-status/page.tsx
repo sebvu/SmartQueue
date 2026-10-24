@@ -4,7 +4,7 @@ import { useQueue } from "../lib/QueueContext";
 import { mockServices } from "../lib/mockData";
 
 export default function QueueStatusPage() {
-  const { queueEntry, leaveQueue, advance } = useQueue();
+  const { queueEntry, serviceName, error, leaveQueue, advance } = useQueue();
   const service = mockServices.find(
     (item) => item.id === queueEntry?.serviceId
     );
@@ -23,7 +23,7 @@ export default function QueueStatusPage() {
       <h1>Queue Status</h1>
       <div className={styles.card}>
     
-      <h2>{service?.name}</h2>
+      <h2>{serviceName ?? service?.name}</h2>
 
       <p>
         Current position: {queueEntry.position}
@@ -42,6 +42,8 @@ export default function QueueStatusPage() {
           Simulate Next Step
         </button>
       )}
+
+      {error && <p role="alert">{error}</p>}
 
       <button onClick={leaveQueue}>
         Leave Queue

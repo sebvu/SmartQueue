@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { mockQueues } from '../../lib/server/mockData.ts'
+import { getStore } from '@/app/lib/server/store.ts';
 
 export async function POST(req: Request) {
     try {
@@ -17,7 +17,9 @@ export async function POST(req: Request) {
             createdAt: new Date().toISOString(),
         };
 
-        mockQueues.push(newQueue);
+        const store = getStore();
+
+        store.queues.push(newQueue);
 
         return NextResponse.json(newQueue, { status: 201 });
     } catch {

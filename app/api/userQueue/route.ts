@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
-import { mockQueueEntries, mockQueues } from "@/app/lib/server/mockData";
 import type { QueueEntry } from '@/app/lib/server/types';
 import { getPosition } from '@/app/lib/server/queueLogic';
+import { getStore } from '@/app/lib/server/store';
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
 
-        const queue = mockQueues.find(
+        const store = getStore();
+        const queue = store.queues.find(
             (queue) => queue.queueId === body.queueId
         );
 
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const existingEntry = mockQueueEntries.find(
+        const existingEntry = store.queueEntries.find(
             (entry) =>
                 entry.userId === body.userId &&
                 entry.queueId === body.queueId &&
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
             status: 'WAITING',
             roleIds: body.roleIds
         };
-        mockQueueEntries.push(newEntry);
+        store.queueEntries.push(newEntry);
         return NextResponse.json(newEntry, { status: 201 });
     } catch (error) {
         return NextResponse.json({ error: "didn't join queue oops" }, { status: 500 });
@@ -56,7 +57,9 @@ export async function GET(req: Request) {
         const uId = body.userId;
         const qId = body.queueId;
 
-        const entry = mockQueueEntries.filter((entry) => (qId === entry.queueId && uId === entry.userId && ["WAITING", "SERVING"].includes(entry.status)));
+
+        const store = getStore();
+        const entry = store.queueEntries.filter((entry) => (qId === entry.queueId && uId === entry.userId && ["WAITING", "SERVING"].includes(entry.status)));
         if (!entry) {
             return NextResponse.json( { error: "No entry found" }, { status: 404 });
         }
@@ -77,7 +80,9 @@ export async function PATCH(req: Request) {
         const uId = body.userId;
         const qId = body.queueId;
 
-        const entry = mockQueueEntries.find((entry) => (qId === entry.queueId && uId === entry.userId && ["WAITING", "SERVING"].includes(entry.status)));
+
+        const store = getStore();
+        const entry = store.queueEntries.find((entry) => (qId === entry.queueId && uId === entry.userId && ["WAITING", "SERVING"].includes(entry.status)));
         if (!entry) {
             return NextResponse.json( { error: "No entry found" }, { status: 404 });
         }

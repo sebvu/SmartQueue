@@ -1,4 +1,4 @@
-import type { AppNotification, HistoryItem, QueueEntry, QueueStatus } from "./types";
+import type { AppNotification, HistoryItem, Priority, QueueEntry, QueueStatus, Service } from "./types";
 
 // The API sends the server's field names (see app/lib/server/types.ts).
 // The A2 screens use their own shapes (app/lib/types.ts). These functions translate.
@@ -60,5 +60,31 @@ export function toCurrentEntry(e: ApiMyEntry): { entry: QueueEntry; serviceName:
       status,
     },
     serviceName: e.queue?.name ?? "Your queue",
+  };
+}
+
+export type ApiQueueListItem = {
+  queueId: string;
+  name: string;
+  description: string;
+  expectedDurationMinutes: number;
+  priorityLevel: "LOW" | "MEDIUM" | "HIGH";
+  isOpen: boolean;
+  isFull: boolean;
+  queueLength: number;
+  estimatedWaitMinutes: number;
+};
+
+// A full queue shows as closed on the join screen, because nobody can join it.
+export function toService(q: ApiQueueListItem): Service {
+  return {
+    id: q.queueId,
+    name: q.name,
+    description: q.description,
+    expectedDurationMinutes: q.expectedDurationMinutes,
+    priority: q.priorityLevel.toLowerCase() as Priority,
+    estimatedWaitMinutes: q.estimatedWaitMinutes,
+    queueLength: q.queueLength,
+    isOpen: q.isOpen && !q.isFull,
   };
 }
