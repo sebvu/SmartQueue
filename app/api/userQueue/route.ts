@@ -48,6 +48,7 @@ export async function POST(req: Request) {
     }
 }
 
+// finding queue position
 export async function GET(req: Request) {
     try {
         const body = await req.json();
@@ -65,5 +66,27 @@ export async function GET(req: Request) {
         return NextResponse.json(pos, { status: 200 })
     } catch (error) {
         return NextResponse.json( { error: "Not found" }, { status: 500 })
+    }
+}
+
+// leaving a queue
+export async function PATCH(req: Request) {
+    try {
+        const body = await req.json();
+
+        const uId = body.userId;
+        const qId = body.queueId;
+
+        const entry = mockQueueEntries.find((entry) => (qId === entry.queueId && uId === entry.userId && ["WAITING", "SERVING"].includes(entry.status)));
+        if (!entry) {
+            return NextResponse.json( { error: "No entry found" }, { status: 404 });
+        }
+
+        entry.status = "CANCELLED";
+        entry.endedAt = new Date().toISOString();
+
+        return NextResponse.json(entry, { status: 200 });
+    } catch {
+        return NextResponse.json( { error: "Failed to leave queue" }, { status: 500 });
     }
 }
