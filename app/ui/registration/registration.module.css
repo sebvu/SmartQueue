@@ -22,6 +22,8 @@
 .formGroup {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
   margin-bottom: 1.25rem;
 }
 
@@ -32,7 +34,17 @@
   font-weight: 500;
 }
 
+/* red "*" before labels of required fields */
+.required::before {
+  content: "* ";
+  color: red;
+
+  position: relative;
+  top: 2px;
+}
+
 .input {
+  width: 100%;
   background-color: var(--background-pane);
   color: var(--text-color);
   border: 1px solid var(--surface1-color);
@@ -53,18 +65,39 @@
   border-color: transparent;
 }
 
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* invalid: red border (was input:user-invalid) */
 .inputError {
-  border-color: var(--red-color);
+  border-color: red;
 }
 
 .inputError:focus {
-  outline: 2px solid var(--red-color);
+  outline: 2px solid red;
 }
 
+/* valid: green border (was input:user-valid) */
+.inputValid {
+  border-color: green;
+}
+
+.inputValid:focus {
+  outline: 2px solid green;
+}
+
+/* error badge (was input + span) */
 .errorText {
-  color: var(--red-color);
-  font-size: var(--size-xs);
-  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  white-space: pre-line; /* lets "\n" in messages break lines */
+
+  border: 1px solid #333;
+  border-radius: 5px;
+  background-color: crimson;
+  color: white;
+  padding: 0.2rem;
 }
 
 .submitBtn {
@@ -77,11 +110,17 @@
   font-weight: bold;
   cursor: pointer;
   margin-top: 1rem;
+  width: 100%;
   transition: background-color 0.2s ease;
 }
 
 .submitBtn:hover {
   background-color: var(--lavender-color);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .toggleText {

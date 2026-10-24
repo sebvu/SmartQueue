@@ -1,60 +1,101 @@
-"use client";
-
 import { useState } from "react";
 import styles from "./registration.module.css";
-import { verifyInput, VerifyPair } from "./validation";
+import {
+  validateConfirmPassword,
+  validateEmail,
+  validatePassword,
+  validateUsername,
+} from "./authValidation";
 
 interface RegisterProps {
   onToggleMode: () => void;
 }
 
+type Field = "username" | "email" | "password" | "confirm";
+
+// TODO: replace with the real register API call (POST).
+async function registerUser(data: {
+  username: string;
+  email: string;
+  password: string;
+}): Promise<void> {
+  console.log("registerUser called with", data);
+  throw new Error("Register API is not connected yet.");
+}
+
 export default function Register({ onToggleMode }: RegisterProps) {
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<Field, string>>({
+    username: "",
+    email: "",
+    password: "",
+    confirm: "",
+  });
+  const [touched, setTouched] = useState<Record<Field, boolean>>({
+    username: false,
+    email: false,
+    password: false,
+    confirm: false,
+  });
+  const [serverError, setServerError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Confirm field stays disabled until the password itself is valid.
+  const passwordError = validatePassword(values.password);
+  const confirmDisabled = passwordError.length > 0;
+
+  // Errors are derived from the current values, so changing the password
+  // automatically re-checks the confirmation too.
+  const errors: Record<Field, string> = {
+    username: validateUsername(values.username),
+    email: validateEmail(values.email),
+    password: passwordError,
+    confirm: confirmDisabled
+      ? ""
+      : validateConfirmPassword(values.confirm, values.password),
+  };
+
+  const handleChange =
+    (field: Field) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setValues((v) => ({ ...v, [field]: e.target.value }));
+      setTouched((t) => ({ ...t, [field]: true }));
+    };
+
+  const showError = (field: Field) => touched[field] && errors[field];
+
+  const inputClass = (field: Field) => {
+    if (!touched[field] || (field === "confirm" && confirmDisabled)) {
+      return styles.input;
+    }
+    return `${styles.input} ${errors[field] ? styles.inputError : styles.inputValid}`;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ username: true, email: true, password: true, confirm: true });
+    setServerError("");
 
-    const verifyPairs: VerifyPair[] = [
-      {
-        field: "username",
-        input: username,
-        verifier: (val) => val.length < 5 || val.length > 18,
-        errMsg: "Username must be between 5 and 18 characters.",
-      },
-      {
-        field: "email",
-        input: email,
-        verifier: (val) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), // Basic Regex for deeper email check
-        errMsg: "Please enter a valid email address.",
-      },
-      {
-        field: "password",
-        input: password,
-        verifier: (val) => val.length < 6 || val.length > 20,
-        errMsg: "Password must be between 6 and 20 characters.",
-      },
-      {
-        field: "confirmPassword",
-        input: confirmPassword,
-        verifier: (val) => val !== password || val.length === 0,
-        errMsg: "Passwords do not match.",
-      },
-    ];
+    // Confirm is disabled while the password is invalid, so it must be
+    // filled in (and matching) before we accept the form.
+    const confirmError = validateConfirmPassword(
+      values.confirm,
+      values.password,
+    );
+    if (errors.username || errors.email || errors.password || confirmError) {
+      return;
+    }
 
-    const result = verifyInput(verifyPairs);
-    setErrors(result.errors);
-
-    if (!result.hasError) {
-      console.log("Dummy Registration Submitted:", {
-        username,
-        email,
-        password,
+    setSubmitting(true);
+    try {
+      await registerUser({
+        username: values.username.trim(),
+        email: values.email,
+        password: values.password,
       });
-      alert("Registration successful! (Check console)");
+      onToggleMode(); // registered: send them to the login view
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : "Sign up failed.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -62,77 +103,114 @@ export default function Register({ onToggleMode }: RegisterProps) {
     <div className={styles.authContainer}>
       <h1 className={styles.title}>Create Account</h1>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="username">
+          <label
+            className={`${styles.label} ${styles.required}`}
+            htmlFor="username"
+          >
             Username
           </label>
           <input
             id="username"
             type="text"
-            className={`${styles.input} ${errors.username ? styles.inputError : ""}`}
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="coolcat123"
+            className={inputClass("username")}
+            value={values.username}
+            onChange={handleChange("username")}
+            placeholder="yourname"
+            required
           />
-          {errors.username && (
-            <span className={styles.errorText}>{errors.username}</span>
+          {showError("username") && (
+            <span className={styles.errorText} aria-live="polite">
+              {errors.username}
+            </span>
           )}
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="email">
+          <label
+            className={`${styles.label} ${styles.required}`}
+            htmlFor="email"
+          >
             Email
           </label>
           <input
             id="email"
             type="email"
-            className={`${styles.input} ${errors.email ? styles.inputError : ""}`}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            className={inputClass("email")}
+            value={values.email}
+            onChange={handleChange("email")}
             placeholder="you@example.com"
+            required
           />
-          {errors.email && (
-            <span className={styles.errorText}>{errors.email}</span>
+          {showError("email") && (
+            <span className={styles.errorText} aria-live="polite">
+              {errors.email}
+            </span>
           )}
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="password">
+          <label
+            className={`${styles.label} ${styles.required}`}
+            htmlFor="password"
+          >
             Password
           </label>
           <input
             id="password"
             type="password"
-            className={`${styles.input} ${errors.password ? styles.inputError : ""}`}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            className={inputClass("password")}
+            value={values.password}
+            onChange={handleChange("password")}
             placeholder="••••••••"
+            minLength={8}
+            maxLength={20}
+            required
           />
-          {errors.password && (
-            <span className={styles.errorText}>{errors.password}</span>
+          {showError("password") && (
+            <span className={styles.errorText} aria-live="polite">
+              {errors.password}
+            </span>
           )}
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="confirmPassword">
+          <label
+            className={`${styles.label} ${styles.required}`}
+            htmlFor="password-conf"
+          >
             Confirm Password
           </label>
           <input
-            id="confirmPassword"
+            id="password-conf"
             type="password"
-            className={`${styles.input} ${errors.confirmPassword ? styles.inputError : ""}`}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            className={inputClass("confirm")}
+            value={values.confirm}
+            onChange={handleChange("confirm")}
             placeholder="••••••••"
+            disabled={confirmDisabled}
+            required
           />
-          {errors.confirmPassword && (
-            <span className={styles.errorText}>{errors.confirmPassword}</span>
+          {!confirmDisabled && showError("confirm") && (
+            <span className={styles.errorText} aria-live="polite">
+              {errors.confirm}
+            </span>
           )}
         </div>
 
-        <button type="submit" className={styles.submitBtn}>
-          Sign Up
+        {serverError && (
+          <span className={styles.errorText} aria-live="polite">
+            {serverError}
+          </span>
+        )}
+
+        <button
+          type="submit"
+          className={styles.submitBtn}
+          disabled={submitting}
+        >
+          {submitting ? "Creating account..." : "Sign Up"}
         </button>
       </form>
 

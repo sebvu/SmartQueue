@@ -1,40 +1,57 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./registration.module.css";
-import { verifyInput, VerifyPair } from "./validation";
+import { validateEmail } from "./authValidation";
 
 interface LoginProps {
   onToggleMode: () => void;
 }
 
+// TODO: replace with the real login API call.
+// It should POST the credentials and resolve with the session ID.
+async function loginUser(email: string, password: string): Promise<string> {
+  console.log("loginUser called with", { email, password });
+  throw new Error("Login API is not connected yet.");
+}
+
 export default function Login({ onToggleMode }: LoginProps) {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState({ email: false, password: false });
+  const [serverError, setServerError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const errors = {
+    email: validateEmail(email),
+    password: password.length === 0 ? "Please enter a password." : "",
+  };
+
+  const showError = (field: "email" | "password") =>
+    touched[field] && errors[field];
+
+  const inputClass = (field: "email" | "password") => {
+    if (!touched[field]) return styles.input;
+    return `${styles.input} ${errors[field] ? styles.inputError : styles.inputValid}`;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ email: true, password: true });
+    setServerError("");
 
-    const verifyPairs: VerifyPair[] = [
-      {
-        field: "email",
-        input: email,
-        verifier: (val) => !val.includes("@") || val.trim().length === 0,
-        errMsg: "Please enter a valid email address.",
-      },
-      {
-        field: "password",
-        input: password,
-        verifier: (val) => val.length < 1,
-        errMsg: "Password is required.",
-      },
-    ];
+    if (errors.email || errors.password) return;
 
-    const result = verifyInput(verifyPairs);
-    setErrors(result.errors);
-
-    if (!result.hasError) {
-      console.log("Dummy Login Submitted:", { email, password });
-      alert("Login successful! (Check console)");
+    setSubmitting(true);
+    try {
+      const sessionID = await loginUser(email, password);
+      localStorage.setItem("sessionID", sessionID);
+      router.push("/home");
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : "Login failed.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -42,43 +59,71 @@ export default function Login({ onToggleMode }: LoginProps) {
     <div className={styles.authContainer}>
       <h1 className={styles.title}>Welcome Back</h1>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="email">
+          <label
+            className={`${styles.label} ${styles.required}`}
+            htmlFor="email"
+          >
             Email
           </label>
           <input
             id="email"
             type="email"
-            className={`${styles.input} ${errors.email ? styles.inputError : ""}`}
+            className={inputClass("email")}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setTouched((t) => ({ ...t, email: true }));
+            }}
             placeholder="you@example.com"
+            required
           />
-          {errors.email && (
-            <span className={styles.errorText}>{errors.email}</span>
+          {showError("email") && (
+            <span className={styles.errorText} aria-live="polite">
+              {errors.email}
+            </span>
           )}
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="password">
+          <label
+            className={`${styles.label} ${styles.required}`}
+            htmlFor="password"
+          >
             Password
           </label>
           <input
             id="password"
             type="password"
-            className={`${styles.input} ${errors.password ? styles.inputError : ""}`}
+            className={inputClass("password")}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setTouched((t) => ({ ...t, password: true }));
+            }}
             placeholder="••••••••"
+            required
           />
-          {errors.password && (
-            <span className={styles.errorText}>{errors.password}</span>
+          {showError("password") && (
+            <span className={styles.errorText} aria-live="polite">
+              {errors.password}
+            </span>
           )}
         </div>
 
-        <button type="submit" className={styles.submitBtn}>
-          Sign In
+        {serverError && (
+          <span className={styles.errorText} aria-live="polite">
+            {serverError}
+          </span>
+        )}
+
+        <button
+          type="submit"
+          className={styles.submitBtn}
+          disabled={submitting}
+        >
+          {submitting ? "Signing in..." : "Sign In"}
         </button>
       </form>
 
