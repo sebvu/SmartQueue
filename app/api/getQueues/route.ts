@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getStore } from '@/app/lib/server/store';
+import { listQueues } from '@/app/lib/server/repo';
 
 export async function GET(req: Request) {
-    const store = getStore();
-    const queues = store.queues;
+    const queues = listQueues();
     if (!queues) {
         return NextResponse.json( {error: "queues not found"}, {status: 400})
     }

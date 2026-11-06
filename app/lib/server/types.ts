@@ -1,5 +1,6 @@
 // Types that mirror smartqueue_schema_revised.sql, in camelCase.
-// A3 keeps everything in memory, so these are plain objects, not database rows.
+// These are the objects the backend works with. A4 stores them in SQLite (see schema.ts);
+// repo.ts turns database rows into these shapes.
 //
 // Not modeled yet (they exist in the schema, but A3 does not need them):
 // queue_links, queue_link_roles, geofencing, questionnaires, approval flow,
@@ -24,6 +25,9 @@ export type NotificationType = "QUEUE_UPDATE" | "STATUS_CHANGE";
 
 export type PriorityLevel = "LOW" | "MEDIUM" | "HIGH";
 
+// Stored on the account (user_credentials.role).
+export type UserRole = "USER" | "ADMIN";
+
 // ---- Tables ----
 
 export type User = {
@@ -31,6 +35,7 @@ export type User = {
   name: string;
   email: string;
   authProvider: AuthProvider;
+  role: UserRole;
   passwordHash: string | null; // null for Google and Apple accounts
   createdAt: string; // ISO timestamp
 };
@@ -49,6 +54,7 @@ export type Organization = {
 // The A2 "service".
 export type Queue = {
   queueId: string;
+  serviceId: string; // the service table row this queue belongs to
   orgId: string;
   name: string; // max 100 characters
   description: string;

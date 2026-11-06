@@ -1,4 +1,4 @@
-// Starting data for the A3 in-memory backend. Matches types.ts and the schema rules:
+// Starting (seed) data. The database is filled with this the first time it is created. Matches types.ts and the schema rules:
 // - finished entries (COMPLETED, CANCELLED, REMOVED) have endedAt, active ones have null
 // - a user has at most one active entry per queue, and at most one SERVING entry per queue
 // - createRoles needs assignRoles, overrideMessages needs createLinks
@@ -24,16 +24,16 @@ import type {
 } from "./types";
 
 export const mockUsers: User[] = [
-  { userId: "u1", name: "Olivia Owner", email: "owner@example.com", authProvider: "GENERAL", passwordHash: "fake-hash-1", createdAt: "2026-09-01T09:00:00" },
-  { userId: "u2", name: "Adam Admin", email: "admin@example.com", authProvider: "GENERAL", passwordHash: "fake-hash-2", createdAt: "2026-09-02T09:00:00" },
-  { userId: "u3", name: "Sam Student", email: "sam@example.com", authProvider: "GENERAL", passwordHash: "fake-hash-3", createdAt: "2026-09-03T09:00:00" },
-  { userId: "u4", name: "Jordan Student", email: "jordan@example.com", authProvider: "GOOGLE", passwordHash: null, createdAt: "2026-09-04T09:00:00" },
-  { userId: "u5", name: "Casey Student", email: "casey@example.com", authProvider: "GENERAL", passwordHash: "fake-hash-5", createdAt: "2026-09-05T09:00:00" },
-  { userId: "u6", name: "Priya Patel", email: "priya@example.com", authProvider: "GENERAL", passwordHash: "fake-hash-6", createdAt: "2026-09-06T09:00:00" },
-  { userId: "u7", name: "Marcus Admin", email: "marcus@example.com", authProvider: "GENERAL", passwordHash: "fake-hash-7", createdAt: "2026-09-07T09:00:00" },
-  { userId: "u8", name: "Elena Student", email: "elena@example.com", authProvider: "GENERAL", passwordHash: "fake-hash-8", createdAt: "2026-09-08T09:00:00" },
-  { userId: "u9", name: "Devon Student", email: "devon@example.com", authProvider: "GENERAL", passwordHash: "fake-hash-9", createdAt: "2026-09-09T09:00:00" },
-  { userId: "u10", name: "Riley Student", email: "riley@example.com", authProvider: "APPLE", passwordHash: null, createdAt: "2026-09-10T09:00:00" },
+  { userId: "u1", name: "Olivia Owner", email: "owner@example.com", role: "ADMIN", authProvider: "GENERAL", passwordHash: "fake-hash-1", createdAt: "2026-09-01T09:00:00" },
+  { userId: "u2", name: "Adam Admin", email: "admin@example.com", role: "ADMIN", authProvider: "GENERAL", passwordHash: "fake-hash-2", createdAt: "2026-09-02T09:00:00" },
+  { userId: "u3", name: "Sam Student", email: "sam@example.com", role: "USER", authProvider: "GENERAL", passwordHash: "fake-hash-3", createdAt: "2026-09-03T09:00:00" },
+  { userId: "u4", name: "Jordan Student", email: "jordan@example.com", role: "USER", authProvider: "GOOGLE", passwordHash: null, createdAt: "2026-09-04T09:00:00" },
+  { userId: "u5", name: "Casey Student", email: "casey@example.com", role: "USER", authProvider: "GENERAL", passwordHash: "fake-hash-5", createdAt: "2026-09-05T09:00:00" },
+  { userId: "u6", name: "Priya Patel", email: "priya@example.com", role: "ADMIN", authProvider: "GENERAL", passwordHash: "fake-hash-6", createdAt: "2026-09-06T09:00:00" },
+  { userId: "u7", name: "Marcus Admin", email: "marcus@example.com", role: "ADMIN", authProvider: "GENERAL", passwordHash: "fake-hash-7", createdAt: "2026-09-07T09:00:00" },
+  { userId: "u8", name: "Elena Student", email: "elena@example.com", role: "USER", authProvider: "GENERAL", passwordHash: "fake-hash-8", createdAt: "2026-09-08T09:00:00" },
+  { userId: "u9", name: "Devon Student", email: "devon@example.com", role: "USER", authProvider: "GENERAL", passwordHash: "fake-hash-9", createdAt: "2026-09-09T09:00:00" },
+  { userId: "u10", name: "Riley Student", email: "riley@example.com", role: "USER", authProvider: "APPLE", passwordHash: null, createdAt: "2026-09-10T09:00:00" },
 ];
 
 export const mockOrganizations: Organization[] = [
@@ -42,13 +42,13 @@ export const mockOrganizations: Organization[] = [
 ];
 
 export const mockQueues: Queue[] = [
-  { queueId: "q1", orgId: "o1", name: "General Advising", description: "Walk-in academic advising", expectedDurationMinutes: 15, priorityLevel: "MEDIUM", isActive: true, isOpen: true, maxCapacity: 50, createdAt: "2026-09-01T10:00:00" },
-  { queueId: "q2", orgId: "o1", name: "Financial Aid", description: "Questions about aid and billing", expectedDurationMinutes: 20, priorityLevel: "HIGH", isActive: true, isOpen: true, maxCapacity: 50, createdAt: "2026-09-01T10:05:00" },
-  { queueId: "q3", orgId: "o1", name: "IT Help Desk", description: "Account and device support", expectedDurationMinutes: 10, priorityLevel: "LOW", isActive: false, isOpen: false, maxCapacity: 30, createdAt: "2026-09-01T10:10:00" },
-  { queueId: "q4", orgId: "o1", name: "Registrar", description: "Transcripts, enrollment verification, and records", expectedDurationMinutes: 12, priorityLevel: "MEDIUM", isActive: true, isOpen: true, maxCapacity: 40, createdAt: "2026-09-01T10:15:00" },
-  { queueId: "q5", orgId: "o1", name: "Career Services", description: "Resume reviews and interview prep", expectedDurationMinutes: 30, priorityLevel: "LOW", isActive: true, isOpen: true, maxCapacity: 20, createdAt: "2026-09-01T10:20:00" },
-  { queueId: "q6", orgId: "o2", name: "Equipment Checkout", description: "Borrow gym and sports equipment", expectedDurationMinutes: 5, priorityLevel: "MEDIUM", isActive: true, isOpen: true, maxCapacity: 25, createdAt: "2026-09-06T10:00:00" },
-  { queueId: "q7", orgId: "o2", name: "Intramural Sign-Up", description: "Register a team for intramural sports", expectedDurationMinutes: 8, priorityLevel: "LOW", isActive: true, isOpen: false, maxCapacity: 40, createdAt: "2026-09-06T10:05:00" },
+  { queueId: "q1", serviceId: "s1", orgId: "o1", name: "General Advising", description: "Walk-in academic advising", expectedDurationMinutes: 15, priorityLevel: "MEDIUM", isActive: true, isOpen: true, maxCapacity: 50, createdAt: "2026-09-01T10:00:00" },
+  { queueId: "q2", serviceId: "s2", orgId: "o1", name: "Financial Aid", description: "Questions about aid and billing", expectedDurationMinutes: 20, priorityLevel: "HIGH", isActive: true, isOpen: true, maxCapacity: 50, createdAt: "2026-09-01T10:05:00" },
+  { queueId: "q3", serviceId: "s3", orgId: "o1", name: "IT Help Desk", description: "Account and device support", expectedDurationMinutes: 10, priorityLevel: "LOW", isActive: false, isOpen: false, maxCapacity: 30, createdAt: "2026-09-01T10:10:00" },
+  { queueId: "q4", serviceId: "s4", orgId: "o1", name: "Registrar", description: "Transcripts, enrollment verification, and records", expectedDurationMinutes: 12, priorityLevel: "MEDIUM", isActive: true, isOpen: true, maxCapacity: 40, createdAt: "2026-09-01T10:15:00" },
+  { queueId: "q5", serviceId: "s5", orgId: "o1", name: "Career Services", description: "Resume reviews and interview prep", expectedDurationMinutes: 30, priorityLevel: "LOW", isActive: true, isOpen: true, maxCapacity: 20, createdAt: "2026-09-01T10:20:00" },
+  { queueId: "q6", serviceId: "s6", orgId: "o2", name: "Equipment Checkout", description: "Borrow gym and sports equipment", expectedDurationMinutes: 5, priorityLevel: "MEDIUM", isActive: true, isOpen: true, maxCapacity: 25, createdAt: "2026-09-06T10:00:00" },
+  { queueId: "q7", serviceId: "s7", orgId: "o2", name: "Intramural Sign-Up", description: "Register a team for intramural sports", expectedDurationMinutes: 8, priorityLevel: "LOW", isActive: true, isOpen: false, maxCapacity: 40, createdAt: "2026-09-06T10:05:00" },
 ];
 
 export const mockCustomRoles: CustomRole[] = [

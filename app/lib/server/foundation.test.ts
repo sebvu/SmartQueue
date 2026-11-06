@@ -12,7 +12,8 @@ import {
 import {
   countActiveEntries, entryWeight, estimateWaitMinutes, getPosition, getWaitingOrder, isAlmostReady,
 } from "./queueLogic";
-import { generateId, getStore, resetStore } from "./store";
+import * as repo from "./repo";
+import { generateId, resetStore } from "./store";
 import { parseBody, validate } from "./validation";
 
 const req = (headers: Record<string, string> = {}) => new Request("http://x/api", { headers });
@@ -99,16 +100,17 @@ describe("password", () => {
 
 describe("store", () => {
   it("seeds data, hashes demo passwords, and resets", () => {
-    const s = getStore();
-    expect(s.users.length).toBe(10);
-    const sam = s.users.find((u) => u.email === "sam@example.com")!;
+    expect(repo.listUsers().length).toBe(10);
+    const sam = repo.findUserByEmail("SAM@example.com")!;
     expect(verifyPassword("password123", sam.passwordHash)).toBe(true);
-    s.users.pop();
-    expect(resetStore().users.length).toBe(10);
+    repo.updateProfile("u3", { fullName: "Changed" });
+    resetStore();
+    expect(repo.listUsers().length).toBe(10);
+    expect(repo.findUserById("u3")!.name).toBe("Sam Student");
     expect(generateId()).not.toBe(generateId());
   });
   it("keeps seed users with null passwordHash as null", () => {
-    expect(getStore().users.some((u) => u.passwordHash === null)).toBe(true);
+    expect(repo.listUsers().some((u) => u.passwordHash === null)).toBe(true);
   });
 });
 
@@ -133,11 +135,12 @@ describe("auth", () => {
     expect(getCurrentUser(r)).toBeNull();
     expect(() => requireUser(r)).toThrowError(/log in/);
     expect(getCurrentUser(req())).toBeNull();
-    getStore().sessions.set("ghost", "nobody");
+    // a session for a user that does not exist is refused by the database (foreign key)
+    expect(() => repo.insertSession("ghost", "nobody")).toThrow();
     expect(getCurrentUser(req({ authorization: "Bearer ghost" }))).toBeNull();
   });
   it("never leaks passwordHash", () => {
-    const pub = toPublicUser(getStore().users[0]);
+    const pub = toPublicUser(repo.listUsers()[0]);
     expect("passwordHash" in pub).toBe(false);
   });
   it("builds cookies", () => {
@@ -177,7 +180,7 @@ describe("access", () => {
 
 describe("queueLogic", () => {
   const entryFor = (userId: string, queueId: string) =>
-    getStore().queueEntries.find((e) => e.userId === userId && e.queueId === queueId)!;
+    repo.listEntriesByQueue(queueId, ["WAITING", "SERVING"]).find((e) => e.userId === userId)!;
   it("orders by priority weight then join time", () => {
     const order = getWaitingOrder("q1").map((e) => e.userId);
     expect(order).toEqual(["u4", "u3", "u5", "u8", "u9"]);
@@ -189,17 +192,17 @@ describe("queueLogic", () => {
     expect(isAlmostReady(first)).toBe(true);
     expect(isAlmostReady(entryFor("u9", "q1"))).toBe(false);
     expect(entryWeight(first)).toBeGreaterThan(0);
-    const serving = getStore().queueEntries.find((e) => e.status === "SERVING")!;
+    const serving = repo.listEntriesByQueue("q4", ["SERVING"])[0];
     expect(getPosition(serving)).toBeNull();
     expect(isAlmostReady(serving)).toBe(false);
   });
   it("estimates wait and counts active entries", () => {
-    const q4 = getStore().queues.find((q) => q.queueId === "q4")!;
+    const q4 = repo.findQueue("q4")!;
     const e = entryFor("u4", "q4");
     expect(estimateWaitMinutes(e, q4)).toBe(q4.expectedDurationMinutes);
-    const q1 = getStore().queues.find((q) => q.queueId === "q1")!;
+    const q1 = repo.findQueue("q1")!;
     expect(estimateWaitMinutes(entryFor("u3", "q1"), q1)).not.toBeNull();
-    expect(estimateWaitMinutes(getStore().queueEntries.find((x) => x.status === "SERVING")!, q4)).toBeNull();
+    expect(estimateWaitMinutes(repo.listEntriesByQueue("q4", ["SERVING"])[0], q4)).toBeNull();
     expect(countActiveEntries("q1")).toBeGreaterThan(0);
   });
   it("ignores unknown roles in weight", () => {

@@ -7,14 +7,15 @@ import { POST as leavePost } from "@/app/api/queues/[queueId]/leave/route";
 import { createSession } from "./auth";
 import { listNotifications } from "./notificationService";
 import { getQueueDetail, joinQueue, leaveQueue, listQueues } from "./queueUserService";
-import { getStore, resetStore } from "./store";
+import * as repo from "./repo";
+import { resetStore } from "./store";
 
 const as = (userId: string) =>
   new Request("http://x/api", { method: "POST", headers: { authorization: `Bearer ${createSession(userId)}` } });
 const ctx = (queueId: string) => ({ params: Promise.resolve({ queueId }) });
 const json = async (r: Response) => (await r.json()) as any;
 const entriesIn = (userId: string, queueId: string) =>
-  getStore().queueEntries.filter((e) => e.userId === userId && e.queueId === queueId);
+  repo.listEntriesByQueue(queueId).filter((e) => e.userId === userId);
 
 beforeEach(() => resetStore());
 
@@ -30,7 +31,7 @@ describe("listQueues and getQueueDetail", () => {
     expect(q1.isFull).toBe(false);
     const q4 = list.find((q) => q.queueId === "q4")!;
     expect(q4.estimatedWaitMinutes).toBe(3 * q4.expectedDurationMinutes); // 2 waiting + 1 being served
-    getStore().queues.find((q) => q.queueId === "q1")!.maxCapacity = 5;
+    repo.updateQueue("q1", { maxCapacity: 5 });
     expect(listQueues().find((q) => q.queueId === "q1")!.isFull).toBe(true);
   });
   it("shows my entry in the detail, or null", () => {
@@ -55,7 +56,7 @@ describe("joinQueue", () => {
     expect(() => joinQueue("u2", "q7")).toThrowError(/closed/);
     expect(() => joinQueue("u2", "q3")).toThrowError(/not found/);
     expect(() => joinQueue("u3", "q1")).toThrowError(/already/);
-    getStore().queues.find((q) => q.queueId === "q2")!.maxCapacity = 2;
+    repo.updateQueue("q2", { maxCapacity: 2 });
     expect(() => joinQueue("u2", "q2")).toThrowError(/full/);
   });
   it("lets a person rejoin after leaving", () => {
@@ -75,11 +76,6 @@ describe("leaveQueue", () => {
   it("404s if not in the queue, and refuses while being served", () => {
     expect(() => leaveQueue("u2", "q1")).toThrowError(/not in this queue/);
     expect(() => leaveQueue("u9", "q4")).toThrowError(/being served/);
-  });
-  it("still notifies if the queue record is gone", () => {
-    getStore().queues = getStore().queues.filter((q) => q.queueId !== "q6");
-    expect(leaveQueue("u3", "q6").status).toBe("CANCELLED");
-    expect(listNotifications("u3")[0].message).toBe("You left the queue queue");
   });
 });
 

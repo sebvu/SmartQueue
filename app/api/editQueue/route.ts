@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import {getStore} from '../../lib/server/store.ts'
+import { findQueue, updateQueue, type QueueChanges } from '@/app/lib/server/repo'
 
 export async function PATCH(req: Request) {
-    const store = getStore();
     try {
         const body = await req.json();
 
@@ -14,31 +13,21 @@ export async function PATCH(req: Request) {
         const isOpen = body.isOpen;
         const maxCapacity = body.maxCapacity;
 
-        const currQueue = store.queues.find((queue) => queue.queueId === queueId);
-        if (!currQueue) {
+        if (!findQueue(queueId)) {
             return NextResponse.json({error: "invalid queue id"}, {status: 404});
         }
 
-        if (name) {
-            currQueue.name = name;
-        }
-        if (desc) {
-            currQueue.description = desc;
-        }
-        if (expected !== undefined) {
-            currQueue.expectedDurationMinutes = expected;
-        }
-        if (priority) {
-            currQueue.priorityLevel = priority;
-        }
-        if (isOpen !== undefined) {
-            currQueue.isOpen = isOpen;
-        }
-        if (maxCapacity) {
-            currQueue.maxCapacity = maxCapacity;
-        }
-        
-        return NextResponse.json(currQueue, { status: 200 });
+        const changes: QueueChanges = {};
+        if (name) changes.name = name;
+        if (desc) changes.description = desc;
+        if (expected !== undefined) changes.expectedDurationMinutes = expected;
+        if (priority) changes.priorityLevel = priority;
+        if (isOpen !== undefined) changes.isOpen = isOpen;
+        if (maxCapacity) changes.maxCapacity = maxCapacity;
+
+        // The database rejects values that break its rules, and that becomes a 400 below.
+        const updated = updateQueue(queueId, changes);
+        return NextResponse.json(updated, { status: 200 });
     } catch {
         return NextResponse.json({error: "Invalid details"}, {status: 400})
     }

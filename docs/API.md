@@ -163,3 +163,13 @@ if (res.ok) { /* json.data is the user; go to /user-dashboard */ }
 else { /* json.error.message, and json.error.fields.email / .username / .password for each input */ }
 ```
 `/api/userAuth` stores plain-text passwords and does not keep the person signed in, so the forms should not use it.
+
+
+## 13. Profile (A4)
+
+`GET /api/me/profile` returns `{ data: { userId, fullName, email, phone, preferences } }` for the signed-in user.
+
+`PATCH /api/me/profile` changes any of `fullName` (1 to 100 characters), `phone` (up to 30), and `preferences`
+(a JSON object up to 1000 characters, or `null`). Bad values give a 400 `VALIDATION_ERROR` with a message per field.
+
+Account objects from `/api/auth/*` now include `role` (`USER` or `ADMIN`), and queue objects include `serviceId`.

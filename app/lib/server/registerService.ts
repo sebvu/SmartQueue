@@ -1,7 +1,8 @@
 import { ApiError } from "./http";
 import { createSession, toPublicUser } from "./auth";
 import { hashPassword } from "./password";
-import { generateId, getStore } from "./store";
+import * as repo from "./repo";
+import { generateId } from "./store";
 import type { PublicUser, User } from "./types";
 
 // Creates a new account with a hashed password and signs the person in.
@@ -11,9 +12,8 @@ export function registerUser(
   email: string,
   password: string
 ): { token: string; user: PublicUser } {
-  const store = getStore();
   const cleanEmail = email.trim().toLowerCase();
-  if (store.users.some((u) => u.email.toLowerCase() === cleanEmail)) {
+  if (repo.findUserByEmail(cleanEmail)) {
     throw new ApiError(409, "EMAIL_TAKEN", "An account with this email already exists.", {
       email: "An account with this email already exists.",
     });
@@ -23,9 +23,10 @@ export function registerUser(
     name: username.trim(),
     email: cleanEmail,
     authProvider: "GENERAL",
+    role: "USER",
     passwordHash: hashPassword(password),
     createdAt: new Date().toISOString(),
   };
-  store.users.push(user);
+  repo.insertUser(user);
   return { token: createSession(user.userId), user: toPublicUser(user) };
 }
