@@ -6,18 +6,33 @@ export default function Page() {
   const [username, setUsername] = useState("N/A");
   const [email, setEmail] = useState("N/A");
 
-	// set username super ugly
-	(async () => {
+  // set username and email to display
+  (async () => {
+    try {
+      const response = await fetch("api/me/profile", {
+        method: "GET",
+        credentials: "include",
+      });
 
-	})().then((res) {
+      if (!response.ok) {
+        throw new Error("API call for get profile failed");
+      }
 
-	});
-	 
-	// set email super ugly
+      const data = (await response.json()).data;
 
-  async function getCurrentProfile() {
-    return await fetch();
-  }
+      setUsername(data.fullName);
+      setEmail(data.email);
+    } catch (err) {
+      console.error(err);
+    }
+  })();
 
-  return <header>Profile Page (unstyled)</header>;
+  return (
+    <div>
+      <header>Profile Page (unstyled)</header>
+
+      <p>Username: {username}</p>
+      <p>Email: {email}</p>
+    </div>
+  );
 }
