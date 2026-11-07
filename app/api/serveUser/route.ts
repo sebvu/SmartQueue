@@ -1,5 +1,6 @@
 import {NextResponse} from 'next/server'
-import { advanceQueue } from '@/app/lib/server/repo'
+import { advanceQueue, listWaitingOrdered } from '@/app/lib/server/repo'
+import { addNotification } from '@/app/lib/server/notificationService'
 
 export async function PATCH(req: Request) {
     try {
@@ -14,6 +15,26 @@ export async function PATCH(req: Request) {
         const { serving } = advanceQueue(queueId);
         if (!serving) {
             return NextResponse.json({error: "No user to be served"}, {status: 400});
+        }
+
+        // Notify the person being served.
+        addNotification(
+            serving.userId,
+            serving.entryId,
+            "STATUS_CHANGE",
+            "It's your turn!"
+        );
+
+        // Find the person now at position 2.
+        const secondWaiting = listWaitingOrdered(queueId)[1];
+
+        if (secondWaiting) {
+            addNotification(
+                secondWaiting.userId,
+                secondWaiting.entryId,
+                "QUEUE_UPDATE",
+                "You're almost up!"
+            );
         }
 
         return NextResponse.json(serving, {status: 200});
