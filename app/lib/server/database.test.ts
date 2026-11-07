@@ -30,7 +30,7 @@ beforeEach(() => resetStore());
 describe("schema file", () => {
   it("docs/schema.sql matches the schema the app uses", () => {
     const file = fs.readFileSync(path.join(process.cwd(), "docs", "schema.sql"), "utf8");
-    expect(file).toBe(SCHEMA_SQL);
+    expect(file.replace(/\r\n/g, "\n")).toBe(SCHEMA_SQL.replace(/\r\n/g, "\n"));
   });
   it("keeps data after the database is closed and opened again", () => {
     const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "sq-")), "test.db");
