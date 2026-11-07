@@ -4,7 +4,7 @@ import Image from "next/image";
 export default function Page() {
   return (
     // must always return a root!
-    <header className={`${styles["home-container"]}`}>
+    <div className={`${styles["home-container"]}`}>
       <div className={`${styles["title-container"]}`}>
         <h1 className={`${styles["title-container__header"]}`}>SmartQueue!</h1>
         <p className={`${styles["title-container__subtext"]}`}>
@@ -28,6 +28,6 @@ export default function Page() {
         height={500}
         alt="Logo of SmartQueue"
       />
-    </header>
+    </div>
   );
 }
