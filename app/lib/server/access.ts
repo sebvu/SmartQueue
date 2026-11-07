@@ -1,9 +1,9 @@
 import { requireUser } from "./auth";
 import { ApiError } from "./http";
-import { getStore } from "./store";
+import * as repo from "./repo";
 import type { Organization, Queue, User } from "./types";
 
-// Roles are worked out, not stored:
+// Roles for a specific queue are worked out from the data (the account-level role, USER or ADMIN, is stored in user_credentials):
 //   OWNER = owns the organization the queue belongs to (has every admin ability)
 //   ADMIN = has an admin_permissions row for that queue
 //   USER  = everyone else
@@ -11,27 +11,20 @@ import type { Organization, Queue, User } from "./types";
 export type QueueRole = "OWNER" | "ADMIN" | "USER";
 
 export function getQueueRole(userId: string, queueId: string): QueueRole {
-  const store = getStore();
-  const queue = store.queues.find((q) => q.queueId === queueId);
+  const queue = repo.findQueue(queueId);
   if (!queue) return "USER";
-  const organization = store.organizations.find((o) => o.orgId === queue.orgId);
+  const organization = repo.findOrganization(queue.orgId);
   if (organization && organization.ownerId === userId) return "OWNER";
-  if (store.adminPermissions.some((p) => p.userId === userId && p.queueId === queueId)) {
-    return "ADMIN";
-  }
+  if (repo.hasAdminPermission(userId, queueId)) return "ADMIN";
   return "USER";
 }
 
 export function getOwnedOrgIds(userId: string): string[] {
-  return getStore()
-    .organizations.filter((o) => o.ownerId === userId)
-    .map((o) => o.orgId);
+  return repo.listOwnedOrgIds(userId);
 }
 
 export function getAdminQueueIds(userId: string): string[] {
-  return getStore()
-    .adminPermissions.filter((p) => p.userId === userId)
-    .map((p) => p.queueId);
+  return repo.listAdminQueueIds(userId);
 }
 
 // For endpoints only an owner or admin of this queue may use (view the queue, serve next, remove a user).
@@ -40,7 +33,7 @@ export function requireQueueAdmin(
   queueId: string
 ): { user: User; queue: Queue; role: "OWNER" | "ADMIN" } {
   const user = requireUser(request);
-  const queue = getStore().queues.find((q) => q.queueId === queueId);
+  const queue = repo.findQueue(queueId);
   if (!queue) throw new ApiError(404, "NOT_FOUND", "Queue not found.");
   const role = getQueueRole(user.userId, queueId);
   if (role === "USER") {
@@ -55,7 +48,7 @@ export function requireOrgOwner(
   orgId: string
 ): { user: User; organization: Organization } {
   const user = requireUser(request);
-  const organization = getStore().organizations.find((o) => o.orgId === orgId);
+  const organization = repo.findOrganization(orgId);
   if (!organization) throw new ApiError(404, "NOT_FOUND", "Organization not found.");
   if (organization.ownerId !== user.userId) {
     throw new ApiError(403, "FORBIDDEN", "Only the organization owner can do this.");

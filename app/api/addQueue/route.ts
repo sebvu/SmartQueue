@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
-import { getStore } from '@/app/lib/server/store.ts';
+import { insertQueue } from '@/app/lib/server/repo';
+import { generateId } from '@/app/lib/server/store';
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
         const newQueue = {
-            queueId: body.queueId,
+            queueId: typeof body.queueId === 'string' && body.queueId ? body.queueId : generateId(),
+            serviceId: generateId(),
             orgId: body.orgId,
             name: body.name,
             description: body.description,
@@ -17,9 +19,12 @@ export async function POST(req: Request) {
             createdAt: new Date().toISOString(),
         };
 
-        const store = getStore();
-
-        store.queues.push(newQueue);
+        // The database checks every field (required, length, type, allowed values).
+        try {
+            insertQueue(newQueue);
+        } catch {
+            return NextResponse.json({ error: "Invalid queue details" }, { status: 400 });
+        }
 
         return NextResponse.json(newQueue, { status: 201 });
     } catch {

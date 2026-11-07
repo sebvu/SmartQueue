@@ -7,7 +7,8 @@ import { GET as getSingleGet } from "@/app/api/getSingleQueue/route";
 import { PATCH as serveUserPatch } from "@/app/api/serveUser/route";
 import { GET as userAuthGet, POST as userAuthPost } from "@/app/api/userAuth/route";
 import { GET as userQueueGet, PATCH as userQueuePatch, POST as userQueuePost } from "@/app/api/userQueue/route";
-import { getStore, resetStore } from "./store";
+import * as repo from "./repo";
+import { resetStore } from "./store";
 
 // Tests for the team's route files. A GET handler is called with a POST request here,
 // because the handlers read a JSON body and a GET request cannot carry one in Node.
@@ -21,7 +22,7 @@ describe("getQueues and getSingleQueue", () => {
   it("lists every queue", async () => {
     const res = await getQueuesGet(new Request("http://x/api"));
     expect(res.status).toBe(200);
-    expect((await json(res)).length).toBe(getStore().queues.length);
+    expect((await json(res)).length).toBe(repo.listQueues().length);
   });
   it("returns one queue, or a clear error", async () => {
     expect((await json(await getSingleGet(req({ queueId: "q1" })))).name).toBe("General Advising");
@@ -36,7 +37,7 @@ describe("addQueue and editQueue", () => {
   it("adds a queue that every other route can see", async () => {
     const res = await addQueuePost(req(newQueue));
     expect(res.status).toBe(201);
-    expect(getStore().queues.some((q) => q.queueId === "q99" && q.isOpen && q.isActive)).toBe(true);
+    expect(repo.findQueue("q99")?.isOpen && repo.findQueue("q99")?.isActive).toBe(true);
     expect((await json(await getSingleGet(req({ queueId: "q99" })))).name).toBe("New");
     expect((await addQueuePost(req("{"))).status).toBe(500);
   });
@@ -57,9 +58,10 @@ describe("addQueue and editQueue", () => {
 
 describe("serveUser", () => {
   it("promotes the first waiting person to SERVING and completes the current one", async () => {
-    const before = getStore().queueEntries.find((e) => e.status === "SERVING" && e.queueId === "q4")!;
+    const beforeId = repo.listEntriesByQueue("q4", ["SERVING"])[0].entryId;
     const res = await serveUserPatch(req({ queueId: "q4" }));
     expect(res.status).toBe(200);
+    const before = repo.findEntry(beforeId)!;
     expect(before.status).toBe("COMPLETED");
     expect(before.endedAt).not.toBeNull();
     const served = await json(res);
@@ -109,7 +111,7 @@ describe("userQueue (join, position, leave)", () => {
   it("finds a position and handles a person who is not in the queue", async () => {
     const res = await userQueueGet(req({ userId: "u3", queueId: "q1" }));
     expect(await json(res)).toBe(2);
-    expect((await userQueueGet(req({ userId: "u2", queueId: "q1" }))).status).toBe(500);
+    expect((await userQueueGet(req({ userId: "u2", queueId: "q1" }))).status).toBe(404);
     expect((await userQueueGet(req("{"))).status).toBe(500);
   });
   it("leaves a queue, 404s if not in it, and 500s on bad JSON", async () => {

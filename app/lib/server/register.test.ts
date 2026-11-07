@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { POST as loginPost } from "@/app/api/auth/login/route";
 import { POST as registerPost } from "@/app/api/auth/register/route";
 import { GET as meGet } from "@/app/api/auth/me/route";
-import { getStore, resetStore } from "./store";
+import * as repo from "./repo";
+import { resetStore } from "./store";
 import { registerUser } from "./registerService";
 import { verifyPassword } from "./password";
 
@@ -19,7 +20,7 @@ describe("registerUser", () => {
     expect(user.name).toBe("Newbie");
     expect("passwordHash" in user).toBe(false);
     expect(token).toBeTruthy();
-    const stored = getStore().users.find((u) => u.userId === user.userId)!;
+    const stored = repo.findUserById(user.userId)!;
     expect(stored.passwordHash).not.toBe("supersecret1");
     expect(verifyPassword("supersecret1", stored.passwordHash)).toBe(true);
   });

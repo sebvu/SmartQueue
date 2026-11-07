@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStore } from "@/app/lib/server/store";
+import { findQueue } from "@/app/lib/server/repo";
 
 export async function GET(req: Request) {
     try {
@@ -10,9 +10,8 @@ export async function GET(req: Request) {
             return NextResponse.json({error: "queue Id must be a string"}, {status: 400});
         }
 
-        const store = getStore();
-        const currQueue = store.queues.find((queue) => queue.queueId === queueId);
-        
+        const currQueue = findQueue(queueId);
+
         if (!currQueue) {
             return NextResponse.json({error: "Queue at queue id does not exist"}, {status: 400});
         }

@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server'
 import type { QueueEntry } from '@/app/lib/server/types';
 import { getPosition } from '@/app/lib/server/queueLogic';
-import { getStore } from '@/app/lib/server/store';
+import { findActiveEntry, findQueue, insertEntry, setEntryStatus } from '@/app/lib/server/repo';
+import { generateId } from '@/app/lib/server/store';
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
 
-        const store = getStore();
-        const queue = store.queues.find(
-            (queue) => queue.queueId === body.queueId
-        );
+        const queue = findQueue(body.queueId);
 
         if (!queue || !queue.isActive || !queue.isOpen) {
             return NextResponse.json(
@@ -19,12 +17,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const existingEntry = store.queueEntries.find(
-            (entry) =>
-                entry.userId === body.userId &&
-                entry.queueId === body.queueId &&
-                ["WAITING", "SERVING"].includes(entry.status)
-        );
+        const existingEntry = findActiveEntry(body.userId, body.queueId, ["WAITING", "SERVING"]);
 
         if (existingEntry) {
             return NextResponse.json(
@@ -34,17 +27,17 @@ export async function POST(req: Request) {
         }
 
         const newEntry: QueueEntry = {
-            entryId: `e${Date.now()}`,
+            entryId: generateId(),
             userId: body.userId,
             queueId: body.queueId,
             joinedAt: new Date().toISOString(),
             endedAt: null,
             status: 'WAITING',
-            roleIds: body.roleIds
+            roleIds: body.roleIds ?? []
         };
-        store.queueEntries.push(newEntry);
+        insertEntry(newEntry);
         return NextResponse.json(newEntry, { status: 201 });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "didn't join queue oops" }, { status: 500 });
     }
 }
@@ -54,20 +47,15 @@ export async function GET(req: Request) {
     try {
         const body = await req.json();
 
-        const uId = body.userId;
-        const qId = body.queueId;
-
-
-        const store = getStore();
-        const entry = store.queueEntries.filter((entry) => (qId === entry.queueId && uId === entry.userId && ["WAITING", "SERVING"].includes(entry.status)));
+        const entry = findActiveEntry(body.userId, body.queueId, ["WAITING", "SERVING"]);
         if (!entry) {
             return NextResponse.json( { error: "No entry found" }, { status: 404 });
         }
-        
-        const pos = getPosition(entry[0])
+
+        const pos = getPosition(entry)
 
         return NextResponse.json(pos, { status: 200 })
-    } catch (error) {
+    } catch {
         return NextResponse.json( { error: "Not found" }, { status: 500 })
     }
 }
@@ -77,20 +65,14 @@ export async function PATCH(req: Request) {
     try {
         const body = await req.json();
 
-        const uId = body.userId;
-        const qId = body.queueId;
-
-
-        const store = getStore();
-        const entry = store.queueEntries.find((entry) => (qId === entry.queueId && uId === entry.userId && ["WAITING", "SERVING"].includes(entry.status)));
+        const entry = findActiveEntry(body.userId, body.queueId, ["WAITING", "SERVING"]);
         if (!entry) {
             return NextResponse.json( { error: "No entry found" }, { status: 404 });
         }
 
-        entry.status = "CANCELLED";
-        entry.endedAt = new Date().toISOString();
+        const left = setEntryStatus(entry.entryId, "CANCELLED", new Date().toISOString());
 
-        return NextResponse.json(entry, { status: 200 });
+        return NextResponse.json(left, { status: 200 });
     } catch {
         return NextResponse.json( { error: "Failed to leave queue" }, { status: 500 });
     }

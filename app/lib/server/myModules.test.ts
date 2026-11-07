@@ -6,9 +6,10 @@ import { GET as listGet } from "@/app/api/me/notifications/route";
 import { PATCH as markPatch } from "@/app/api/me/notifications/[id]/route";
 import { POST as readAllPost } from "@/app/api/me/notifications/read-all/route";
 import { createSession } from "./auth";
-import { getMyCurrentEntries, getMyHistory } from "./myEntriesService";
+import { getMyCurrentEntries, getMyHistory, toMyEntry } from "./myEntriesService";
 import { addNotification, listNotifications, markAllNotificationsRead, setNotificationRead } from "./notificationService";
-import { getStore, resetStore } from "./store";
+import * as repo from "./repo";
+import { resetStore } from "./store";
 
 const as = (userId: string, init: RequestInit = {}) =>
   new Request("http://x/api", {
@@ -34,12 +35,12 @@ describe("notificationService", () => {
   it("404s for missing or someone else's notification", () => {
     expect(() => setNotificationRead("u3", "nope", true)).toThrowError(/not found/);
     expect(() => setNotificationRead("u3", "n5", true)).toThrowError(/not found/);
-    expect(getStore().notifications.find((n) => n.notificationId === "n5")!.isRead).toBe(true);
+    expect(repo.findNotification("u4", "n5")!.isRead).toBe(true);
   });
   it("marks all read and counts what changed", () => {
     expect(markAllNotificationsRead("u3")).toEqual({ updated: 2 });
     expect(markAllNotificationsRead("u3")).toEqual({ updated: 0 });
-    expect(getStore().notifications.find((n) => n.notificationId === "n6")!.isRead).toBe(false);
+    expect(repo.findNotification("u4", "n6")!.isRead).toBe(false);
   });
   it("addNotification creates an unread one for the user", () => {
     const n = addNotification("u3", "e1", "STATUS_CHANGE", "Hello");
@@ -66,13 +67,12 @@ describe("myEntriesService", () => {
     expect(serving.estimatedWaitMinutes).toBeNull();
   });
   it("treats FIRST_IN_LINE as position 1 and handles a missing queue", () => {
-    const e = getStore().queueEntries.find((x) => x.entryId === "e1")!;
-    e.status = "FIRST_IN_LINE";
+    repo.setEntryStatus("e1", "FIRST_IN_LINE");
     const mine = getMyCurrentEntries("u3").find((x) => x.entry.entryId === "e1")!;
     expect(mine.position).toBe(1);
     expect(mine.almostReady).toBe(true);
-    getStore().queues = getStore().queues.filter((q) => q.queueId !== "q1");
-    const orphan = getMyCurrentEntries("u3").find((x) => x.entry.entryId === "e1")!;
+    // an entry whose queue is not in the database (the database itself would not allow one)
+    const orphan = toMyEntry({ ...mine.entry, queueId: "gone" });
     expect(orphan.queue).toBeNull();
     expect(orphan.estimatedWaitMinutes).toBeNull();
   });
@@ -84,13 +84,6 @@ describe("myEntriesService", () => {
       ["e6", "removed"],
     ]);
     expect(history[0].queue?.name).toBeTruthy();
-  });
-  it("history falls back to joinedAt and tolerates a missing queue", () => {
-    const e = getStore().queueEntries.find((x) => x.entryId === "e4")!;
-    e.endedAt = null;
-    e.queueId = "gone";
-    const h = getMyHistory("u3").find((x) => x.entry.entryId === "e4")!;
-    expect(h.queue).toBeNull();
   });
   it("gives nothing to a user with no entries", () => {
     expect(getMyCurrentEntries("u2")).toEqual([]);

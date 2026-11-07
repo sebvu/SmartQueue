@@ -1,11 +1,12 @@
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "./config";
 import { ApiError } from "./http";
-import { generateId, getStore } from "./store";
+import * as repo from "./repo";
+import { generateId } from "./store";
 import type { PublicUser, User } from "./types";
 
 // "Logged in" means the request carries a valid session token, either in the
 // sq_session cookie (what the browser sends) or an "Authorization: Bearer <token>" header
-// (handy for tests and tools). Tokens live in the in-memory store.
+// (handy for tests and tools). Tokens are stored in the session table.
 
 export function parseCookies(header: string | null): Record<string, string> {
   const cookies: Record<string, string> = {};
@@ -31,21 +32,18 @@ export function getSessionToken(request: Request): string | null {
 
 export function createSession(userId: string): string {
   const token = generateId();
-  getStore().sessions.set(token, userId);
+  repo.insertSession(token, userId);
   return token;
 }
 
 export function destroySession(token: string): void {
-  getStore().sessions.delete(token);
+  repo.deleteSession(token);
 }
 
 export function getCurrentUser(request: Request): User | null {
   const token = getSessionToken(request);
   if (!token) return null;
-  const store = getStore();
-  const userId = store.sessions.get(token);
-  if (!userId) return null;
-  return store.users.find((u) => u.userId === userId) ?? null;
+  return repo.findUserBySession(token);
 }
 
 export function requireUser(request: Request): User {
@@ -61,6 +59,7 @@ export function toPublicUser(user: User): PublicUser {
     name: user.name,
     email: user.email,
     authProvider: user.authProvider,
+    role: user.role,
     createdAt: user.createdAt,
   };
 }

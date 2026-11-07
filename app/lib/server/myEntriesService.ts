@@ -1,5 +1,5 @@
 import { estimateWaitMinutes, getPosition, isAlmostReady } from "./queueLogic";
-import { getStore } from "./store";
+import * as repo from "./repo";
 import type { EntryStatus, Queue, QueueEntry } from "./types";
 
 // The signed-in user's own queue entries: where they are now, and what already ended.
@@ -24,19 +24,19 @@ export type MyEntry = {
   estimatedWaitMinutes: number | null;
 };
 
-function summarize(queue: Queue | undefined): QueueSummary | null {
+function summarize(queue: Queue | null | undefined): QueueSummary | null {
   if (!queue) return null;
   const { queueId, name, expectedDurationMinutes, isOpen, isActive } = queue;
   return { queueId, name, expectedDurationMinutes, isOpen, isActive };
 }
 
 function forUser(userId: string, statuses: EntryStatus[]): QueueEntry[] {
-  return getStore().queueEntries.filter((e) => e.userId === userId && statuses.includes(e.status));
+  return repo.listEntriesByUser(userId, statuses);
 }
 
 // One entry with its queue summary, position, and wait estimate.
 export function toMyEntry(entry: QueueEntry): MyEntry {
-  const queue = getStore().queues.find((q) => q.queueId === entry.queueId);
+  const queue = repo.findQueue(entry.queueId);
   return {
     entry,
     queue: summarize(queue),
@@ -63,13 +63,12 @@ const OUTCOME = { COMPLETED: "served", CANCELLED: "left", REMOVED: "removed" } a
 
 // Finished entries, most recently ended first.
 export function getMyHistory(userId: string): HistoryItem[] {
-  const queues = getStore().queues;
   const key = (e: QueueEntry) => e.endedAt ?? e.joinedAt;
   return forUser(userId, HISTORY_STATUSES)
     .sort((a, b) => key(b).localeCompare(key(a)))
     .map((entry) => ({
       entry,
-      queue: summarize(queues.find((q) => q.queueId === entry.queueId)),
+      queue: summarize(repo.findQueue(entry.queueId)),
       outcome: OUTCOME[entry.status as keyof typeof OUTCOME],
     }));
 }

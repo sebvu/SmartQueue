@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: { alias: { "@": path.resolve(__dirname) } },
   test: {
     environment: "node",
+    env: { SMARTQUEUE_DB: ":memory:" }, // tests never touch the real database file
     include: ["app/**/*.test.ts"],
     coverage: {
       provider: "v8",
